@@ -187,20 +187,22 @@ public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Seria
     @Override
     public void run() {
 
-        GroovyScriptTriggerDescriptor descriptor = getDescriptor();
-        ExecutorService executorService = descriptor.getExecutor();
-        StreamTaskListener listener;
-        try {
-            listener = new StreamTaskListener(getLogFile());
-            ScriptTriggerLog log = new ScriptTriggerLog(listener);
-            if (job instanceof AbstractProject) {
-                Runner runner = new Runner((AbstractProject) job, log);
-                executorService.execute(runner);
-            }
+        if (!Hudson.getInstance().isQuietingDown() && ((AbstractProject)this.job).isBuildable()) {
+            GroovyScriptTriggerDescriptor descriptor = getDescriptor();
+            ExecutorService executorService = descriptor.getExecutor();
+            StreamTaskListener listener;
+            try {
+                listener = new StreamTaskListener(getLogFile());
+                ScriptTriggerLog log = new ScriptTriggerLog(listener);
+                if (job instanceof AbstractProject) {
+                    Runner runner = new Runner((AbstractProject) job, log);
+                    executorService.execute(runner);
+                }
 
-        } catch (Throwable t) {
-            LOGGER.log(Level.SEVERE, "Severe Error during the trigger execution " + t.getMessage());
-            t.printStackTrace();
+            } catch (Throwable t) {
+                LOGGER.log(Level.SEVERE, "Severe Error during the trigger execution " + t.getMessage());
+                t.printStackTrace();
+            }
         }
     }
 
