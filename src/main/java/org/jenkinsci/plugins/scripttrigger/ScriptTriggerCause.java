@@ -9,6 +9,6 @@ public class ScriptTriggerCause extends Cause {
 
     @Override
     public String getShortDescription() {
-        return "[ScriptTrigger] - Groovy Expression evaluation to true";
+        return "[ScriptTrigger] - The execution script returns the expected exit code";
     }
 }

@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.scripttrigger;
+package org.jenkinsci.plugins.scripttrigger.groovy;
 
 import antlr.ANTLRException;
 import groovy.lang.GroovyShell;
@@ -7,10 +7,12 @@ import hudson.FilePath;
 import hudson.Util;
 import hudson.model.*;
 import hudson.remoting.Callable;
-import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import hudson.util.SequentialExecutionQueue;
 import hudson.util.StreamTaskListener;
+import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
+import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
+import org.jenkinsci.plugins.scripttrigger.ScriptTriggerLog;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -28,7 +30,7 @@ import java.util.logging.Logger;
 /**
  * @author Gregory Boissinot
  */
-public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Serializable {
+public class GroovyScriptTrigger extends AbstractTrigger {
 
     private static Logger LOGGER = Logger.getLogger(GroovyScriptTrigger.class.getName());
 
@@ -43,11 +45,6 @@ public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Seria
         this.propertiesFilePath = Util.fixEmpty(propertiesFilePath);
     }
 
-    @Override
-    public void start(BuildableItem project, boolean newInstance) {
-        super.start(project, newInstance);    //To change body of overridden methods use File | Settings | File Templates.
-    }
-
     @SuppressWarnings("unused")
     public String getGroovyExpression() {
         return groovyExpression;
@@ -59,30 +56,14 @@ public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Seria
     }
 
     @Override
-    public Collection<? extends Action> getProjectActions() {
-        ScriptTriggerAction action = new ScriptTriggerAction((AbstractProject) job, getLogFile(), this.getDescriptor().getDisplayName());
-        return Collections.singleton(action);
+    public File getLogFile() {
+        return new File(job.getRootDir(), "groovyScriptTrigger-polling.log");
     }
 
-    private FilePath getOneRootNode() {
-
-        AbstractProject p = (AbstractProject) job;
-        Label label = p.getAssignedLabel();
-        if (label == null) {
-
-            return Hudson.getInstance().getRootPath();
-        } else {
-            Set<Node> nodes = label.getNodes();
-            Node node;
-            for (Iterator<Node> it = nodes.iterator(); it.hasNext();) {
-                node = it.next();
-                FilePath nodePath = node.getRootPath();
-                if (nodePath != null) {
-                    return nodePath;
-                }
-            }
-            return null;
-        }
+    @Override
+    public Collection<? extends Action> getProjectActions() {
+        GroovyScriptTriggerAction action = new GroovyScriptTriggerAction((AbstractProject) job, getLogFile(), getDescriptor().getDisplayName());
+        return Collections.singleton(action);
     }
 
     /**
@@ -131,9 +112,9 @@ public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Seria
                             parameterValueList.add(parameterValue);
                         }
                         ParametersAction parametersAction = new ParametersAction(parameterValueList);
-                        project.scheduleBuild(0, new ScriptTriggerCause(), parametersAction);
+                        project.scheduleBuild(0, new GroovyScriptTriggerCause(), parametersAction);
                     } else {
-                        project.scheduleBuild(new ScriptTriggerCause());
+                        project.scheduleBuild(new GroovyScriptTriggerCause());
                     }
                 } else {
                     log.info("Expression evaluation returns false.");
@@ -174,20 +155,11 @@ public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Seria
         return evaluationResult;
     }
 
-    /**
-     * Gets the triggering log file
-     *
-     * @return the trigger log
-     */
-    private File getLogFile() {
-        return new File(job.getRootDir(), "trigger-script-polling.log");
-    }
-
 
     @Override
     public void run() {
 
-        if (!Hudson.getInstance().isQuietingDown() && ((AbstractProject)this.job).isBuildable()) {
+        if (!Hudson.getInstance().isQuietingDown() && ((AbstractProject) this.job).isBuildable()) {
             GroovyScriptTriggerDescriptor descriptor = getDescriptor();
             ExecutorService executorService = descriptor.getExecutor();
             StreamTaskListener listener;
@@ -229,7 +201,7 @@ public class GroovyScriptTrigger extends Trigger<BuildableItem> implements Seria
 
         @Override
         public String getDisplayName() {
-            return "Poll with a Groovy script";
+            return "[ScriptTrigger] - Poll with a Groovy script";
         }
     }
 
