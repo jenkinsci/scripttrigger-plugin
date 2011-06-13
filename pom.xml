@@ -11,7 +11,7 @@
     <artifactId>scripttrigger</artifactId>
     <packaging>hpi</packaging>
     <name>Jenkins ScriptTrigger Plug-in</name>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.5.1-SNAPSHOT</version>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/ScriptTrigger+Plugin</url>
 
     <licenses>
@@ -34,6 +34,4 @@
         <developerConnection>scm:git:git@github.com:jenkinsci/scripttrigger-plugin.git</developerConnection>
     </scm>
 
-
 </project>
-
