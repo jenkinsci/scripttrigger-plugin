@@ -6,6 +6,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.*;
+import hudson.remoting.Callable;
 import hudson.tasks.BatchFile;
 import hudson.tasks.CommandInterpreter;
 import hudson.tasks.Shell;
@@ -35,18 +36,26 @@ public class ScriptTrigger extends AbstractTrigger {
 
     private String script;
 
+    private String scriptFilePath;
+
     private String exitCode;
 
     @DataBoundConstructor
-    public ScriptTrigger(String cronTabSpec, String script, String exitCode) throws ANTLRException {
+    public ScriptTrigger(String cronTabSpec, String script, String scriptFilePath, String exitCode) throws ANTLRException {
         super(cronTabSpec);
-        this.script = script;
+        this.script = Util.fixEmpty(script);
+        this.scriptFilePath = Util.fixEmpty(scriptFilePath);
         this.exitCode = Util.fixEmpty(exitCode);
     }
 
     @SuppressWarnings("unused")
     public String getScript() {
         return script;
+    }
+
+    @SuppressWarnings("unused")
+    public String getScriptFilePath() {
+        return scriptFilePath;
     }
 
     @Override
@@ -80,7 +89,6 @@ public class ScriptTrigger extends AbstractTrigger {
                 long start = System.currentTimeMillis();
                 log.info("Polling started on " + DateFormat.getDateTimeInstance().format(new Date(start)));
                 boolean changed = checkIfModified(log);
-                log.info(String.format("Evaluating the  script: \n %s", script));
                 log.info("Polling complete. Took " + Util.getTimeSpanString(System.currentTimeMillis() - start));
                 if (changed) {
                     log.info("The script returns the expected code. Scheduling a build.");
@@ -96,7 +104,7 @@ public class ScriptTrigger extends AbstractTrigger {
         }
     }
 
-    private boolean checkIfModified(ScriptTriggerLog log) throws ScriptTriggerException {
+    private boolean checkIfModified(final ScriptTriggerLog log) throws ScriptTriggerException {
         FilePath executionPath = getOneRootNode();
         if (executionPath == null) {
             //No trigger the job
@@ -104,32 +112,69 @@ public class ScriptTrigger extends AbstractTrigger {
         }
 
         try {
+
+            boolean evaluationResult = false;
+            int expectedExitCode;
+            if (exitCode == null) {
+                expectedExitCode = 0;
+            } else {
+                try {
+                    expectedExitCode = Integer.parseInt(exitCode);
+                } catch (NumberFormatException nfe) {
+                    log.info(String.format("The given exit code must be a numeric value. The given value is '%s'.", exitCode));
+                    return false;
+                }
+            }
+
             TaskListener listener = new StreamBuildListener(new FileOutputStream(getLogFile()));
             final Launcher launcher = Hudson.getInstance().createLauncher(listener);
             CommandInterpreter batchRunner;
-            if (launcher.isUnix()) {
-                batchRunner = new Shell(script);
-            } else {
-                batchRunner = new BatchFile(script);
-            }
-            FilePath tmpFile = batchRunner.createScriptFile(executionPath);
-            int cmdCode = launcher.launch().cmds(batchRunner.buildCommandLine(tmpFile)).stdout(listener).pwd(executionPath).join();
-            log.info(String.format("The exit code is: %s", cmdCode));
 
-            if (exitCode == null) {
-                return cmdCode == 0;
+            if (script != null) {
+                log.info(String.format("Evaluating the script: \n %s", script));
+                if (launcher.isUnix()) {
+                    batchRunner = new Shell(script);
+                } else {
+                    batchRunner = new BatchFile(script);
+                }
+                FilePath tmpFile = batchRunner.createScriptFile(executionPath);
+                int cmdCode = launcher.launch().cmds(batchRunner.buildCommandLine(tmpFile)).stdout(listener).pwd(executionPath).join();
+                log.info(String.format("The exit code is '%s'.", cmdCode));
+                log.info(String.format("Testing if the script execution code returns : '%s'.", expectedExitCode));
+                if (expectedExitCode == cmdCode) {
+                    evaluationResult = true;
+                }
             }
 
-            log.info(String.format("Testing the expected exit code: '%s'", exitCode));
-            if (this.exitCode.equals(cmdCode)) {
-                return true;
+            if (!evaluationResult && (scriptFilePath != null)) {
+
+                log.info(String.format("Evaluating the script file path '%s'.", scriptFilePath));
+                boolean isFileExist = executionPath.act(new Callable<Boolean, ScriptTriggerException>() {
+                    public Boolean call() throws ScriptTriggerException {
+                        File f = new File(scriptFilePath);
+                        if (!f.exists()) {
+                            log.info(String.format("Can't load the file '%s'. It doesn't exist.", f.getPath()));
+                            return false;
+                        }
+                        return true;
+                    }
+                });
+
+                if (isFileExist) {
+                    int cmdCode = launcher.launch().cmds(new File(scriptFilePath)).stdout(listener).pwd(executionPath).join();
+                    log.info(String.format("The exit code is '%s'.", cmdCode));
+                    log.info(String.format("Testing if the script execution code returns : '%s'.", expectedExitCode));
+                    if (expectedExitCode == cmdCode) {
+                        evaluationResult = true;
+                    }
+                }
             }
+
+            return evaluationResult;
 
         } catch (Exception e) {
             throw new ScriptTriggerException(e);
         }
-
-        return false;
     }
 
     @Override
@@ -178,6 +223,11 @@ public class ScriptTrigger extends AbstractTrigger {
         @Override
         public String getDisplayName() {
             return "[ScriptTrigger] - Poll with a shell or batch script";
+        }
+
+        @Override
+        public String getHelpFile() {
+            return "/plugin/scripttrigger/help-script.html";
         }
     }
 

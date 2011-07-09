@@ -36,18 +36,26 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
     private String groovyExpression;
 
+    private String groovyFilePath;
+
     private String propertiesFilePath;
 
     @DataBoundConstructor
-    public GroovyScriptTrigger(String cronTabSpec, String groovyExpression, String propertiesFilePath) throws ANTLRException {
+    public GroovyScriptTrigger(String cronTabSpec, String groovyExpression, String groovyFilePath, String propertiesFilePath) throws ANTLRException {
         super(cronTabSpec);
         this.groovyExpression = Util.fixEmpty(groovyExpression);
+        this.groovyFilePath = Util.fixEmpty(groovyFilePath);
         this.propertiesFilePath = Util.fixEmpty(propertiesFilePath);
     }
 
     @SuppressWarnings("unused")
     public String getGroovyExpression() {
         return groovyExpression;
+    }
+
+    @SuppressWarnings("unused")
+    public String getGroovyFilePath() {
+        return groovyFilePath;
     }
 
     @SuppressWarnings("unused")
@@ -86,7 +94,6 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                 long start = System.currentTimeMillis();
                 log.info("Polling started on " + DateFormat.getDateTimeInstance().format(new Date(start)));
                 boolean changed = checkIfModified(log);
-                log.info(String.format("Evaluating the groovy script: \n %s", groovyExpression));
                 log.info("Polling complete. Took " + Util.getTimeSpanString(System.currentTimeMillis() - start));
                 if (changed) {
                     log.info("Expression evaluation returns true. Scheduling a build.");
@@ -127,7 +134,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         }
     }
 
-    private boolean checkIfModified(ScriptTriggerLog log) throws ScriptTriggerException {
+    private boolean checkIfModified(final ScriptTriggerLog log) throws ScriptTriggerException {
         FilePath executionPath = getOneRootNode();
         if (executionPath == null) {
             //No trigger the job
@@ -136,6 +143,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         Boolean evaluationResult = false;
         if (groovyExpression != null) {
             try {
+                log.info(String.format("Evaluating the groovy script: \n %s", groovyExpression));
                 evaluationResult = executionPath.act(new Callable<Boolean, ScriptTriggerException>() {
                     public Boolean call() throws ScriptTriggerException {
                         GroovyShell shell = new GroovyShell();
@@ -143,6 +151,43 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                         return Boolean.valueOf(String.valueOf(result));
                     }
                 });
+            } catch (IOException ioe) {
+                throw new ScriptTriggerException(ioe);
+            } catch (InterruptedException ie) {
+                throw new ScriptTriggerException(ie);
+            } catch (ScriptTriggerException ge) {
+                throw new ScriptTriggerException(ge);
+            }
+        }
+
+        if (!evaluationResult && (groovyFilePath != null)) {
+            try {
+                boolean isGroovyFileExist = executionPath.act(new Callable<Boolean, ScriptTriggerException>() {
+                    public Boolean call() throws ScriptTriggerException {
+                        File f = new File(groovyFilePath);
+                        if (!f.exists()) {
+                            log.info(String.format("Can't load the groovy file '%s'. It doesn't exist.", f.getPath()));
+                            return false;
+                        }
+                        return true;
+                    }
+                });
+
+                if (isGroovyFileExist) {
+                    log.info(String.format("Evaluating the groovy script file path '%s'", groovyFilePath));
+                    evaluationResult = executionPath.act(new Callable<Boolean, ScriptTriggerException>() {
+                        public Boolean call() throws ScriptTriggerException {
+                            GroovyShell shell = new GroovyShell();
+                            Object result;
+                            try {
+                                result = shell.evaluate(new File(groovyFilePath));
+                            } catch (IOException ioe) {
+                                throw new ScriptTriggerException(ioe);
+                            }
+                            return Boolean.valueOf(String.valueOf(result));
+                        }
+                    });
+                }
             } catch (IOException ioe) {
                 throw new ScriptTriggerException(ioe);
             } catch (InterruptedException ie) {
@@ -202,6 +247,11 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         @Override
         public String getDisplayName() {
             return "[ScriptTrigger] - Poll with a Groovy script";
+        }
+
+        @Override
+        public String getHelpFile() {
+            return "/plugin/scripttrigger/help-groovyScript.html";
         }
     }
 

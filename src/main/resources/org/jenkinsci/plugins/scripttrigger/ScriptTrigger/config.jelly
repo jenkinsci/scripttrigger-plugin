@@ -4,12 +4,15 @@
     <f:textarea name="script" value="${instance.script}"/>
   </f:entry>
 
+  <f:entry field="scriptFilePath" title="${%Script File Path}">
+    <f:textbox name="scriptFilePath" value="${instance.scriptFilePath}"/>
+  </f:entry>
+
   <f:advanced>
     <f:entry field="exitCode" title="${%Exit Code}">
       <f:textbox name="exitCode" value="${instance.exitCode}"/>
     </f:entry>
   </f:advanced>
-
 
   <f:entry title="${%Schedule}" help="/descriptor/hudson.triggers.TimerTrigger/help/spec">
     <f:textarea name="cronTabSpec" checkUrl="'${rootURL}/trigger/TimerTrigger/check?value='+encodeURIComponent(this.value)" value="${instance.spec}"/>
