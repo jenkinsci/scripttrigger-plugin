@@ -1,10 +1,7 @@
 package org.jenkinsci.plugins.scripttrigger;
 
 import antlr.ANTLRException;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.Util;
+import hudson.*;
 import hudson.model.*;
 import hudson.remoting.Callable;
 import hudson.tasks.BatchFile;
@@ -15,9 +12,7 @@ import hudson.util.SequentialExecutionQueue;
 import hudson.util.StreamTaskListener;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.text.DateFormat;
 import java.util.Collection;
 import java.util.Collections;
@@ -131,11 +126,12 @@ public class ScriptTrigger extends AbstractTrigger {
             CommandInterpreter batchRunner;
 
             if (script != null) {
+                final String scriptContentResolved = Util.replaceMacro(script, EnvVars.masterEnvVars);
                 log.info(String.format("Evaluating the script: \n %s", script));
                 if (launcher.isUnix()) {
-                    batchRunner = new Shell(script);
+                    batchRunner = new Shell(scriptContentResolved);
                 } else {
-                    batchRunner = new BatchFile(script);
+                    batchRunner = new BatchFile(scriptContentResolved);
                 }
                 FilePath tmpFile = batchRunner.createScriptFile(executionPath);
                 int cmdCode = launcher.launch().cmds(batchRunner.buildCommandLine(tmpFile)).stdout(listener).pwd(executionPath).join();
@@ -161,7 +157,29 @@ public class ScriptTrigger extends AbstractTrigger {
                 });
 
                 if (isFileExist) {
-                    int cmdCode = launcher.launch().cmds(new File(scriptFilePath)).stdout(listener).pwd(executionPath).join();
+
+                    //Get the file Content
+                    StringBuffer content = new StringBuffer();
+                    try {
+                        FileReader fileReader = new FileReader(scriptFilePath);
+                        BufferedReader bufferedReader = new BufferedReader(fileReader);
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            content.append(line);
+                        }
+                    } catch (FileNotFoundException fne) {
+                        throw new ScriptTriggerException(fne);
+                    } catch (IOException ioe) {
+                        throw new ScriptTriggerException(ioe);
+                    }
+
+                    if (launcher.isUnix()) {
+                        batchRunner = new Shell(content.toString());
+                    } else {
+                        batchRunner = new BatchFile(content.toString());
+                    }
+                    FilePath tmpFile = batchRunner.createScriptFile(executionPath);
+                    int cmdCode = launcher.launch().cmds(batchRunner.buildCommandLine(tmpFile)).stdout(listener).pwd(executionPath).join();
                     log.info(String.format("The exit code is '%s'.", cmdCode));
                     log.info(String.format("Testing if the script execution code returns : '%s'.", expectedExitCode));
                     if (expectedExitCode == cmdCode) {
@@ -193,6 +211,7 @@ public class ScriptTrigger extends AbstractTrigger {
                 }
 
             } catch (Throwable t) {
+                executorService.shutdown();
                 LOGGER.log(Level.SEVERE, "Severe Error during the trigger execution " + t.getMessage());
                 t.printStackTrace();
             }

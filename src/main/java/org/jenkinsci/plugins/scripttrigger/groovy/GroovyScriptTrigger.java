@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.scripttrigger.groovy;
 
 import antlr.ANTLRException;
 import groovy.lang.GroovyShell;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
@@ -15,10 +16,7 @@ import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerLog;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -143,11 +141,14 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         Boolean evaluationResult = false;
         if (groovyExpression != null) {
             try {
+                final String groovyExpressionResolved = Util.replaceMacro(groovyExpression, EnvVars.masterEnvVars);
                 log.info(String.format("Evaluating the groovy script: \n %s", groovyExpression));
                 evaluationResult = executionPath.act(new Callable<Boolean, ScriptTriggerException>() {
                     public Boolean call() throws ScriptTriggerException {
                         GroovyShell shell = new GroovyShell();
-                        Object result = shell.evaluate(groovyExpression);
+                        //Evaluate the new script content
+                        Object result = shell.evaluate(groovyExpressionResolved);
+                        //Return the evaluated result
                         return Boolean.valueOf(String.valueOf(result));
                     }
                 });
@@ -179,11 +180,27 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                         public Boolean call() throws ScriptTriggerException {
                             GroovyShell shell = new GroovyShell();
                             Object result;
+
+                            //Get the file Content
+                            StringBuffer content = new StringBuffer();
                             try {
-                                result = shell.evaluate(new File(groovyFilePath));
+                                FileReader fileReader = new FileReader(groovyFilePath);
+                                BufferedReader bufferedReader = new BufferedReader(fileReader);
+                                String line;
+                                while ((line = bufferedReader.readLine()) != null) {
+                                    content.append(line);
+                                }
+                            } catch (FileNotFoundException fne) {
+                                throw new ScriptTriggerException(fne);
                             } catch (IOException ioe) {
                                 throw new ScriptTriggerException(ioe);
                             }
+
+                            //Replace vars
+                            String contentVars = Util.replaceMacro(content.toString(), EnvVars.masterEnvVars);
+                            //Evaluate the new script content
+                            result = shell.evaluate(contentVars);
+                            //Return the evaluated result
                             return Boolean.valueOf(String.valueOf(result));
                         }
                     });
@@ -217,6 +234,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                 }
 
             } catch (Throwable t) {
+                executorService.shutdown();
                 LOGGER.log(Level.SEVERE, "Severe Error during the trigger execution " + t.getMessage());
                 t.printStackTrace();
             }
