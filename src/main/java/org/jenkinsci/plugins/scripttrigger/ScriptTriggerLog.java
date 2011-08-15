@@ -2,10 +2,12 @@ package org.jenkinsci.plugins.scripttrigger;
 
 import hudson.model.TaskListener;
 
+import java.io.Serializable;
+
 /**
  * @author Gregory Boissinot
  */
-public class ScriptTriggerLog {
+public class ScriptTriggerLog implements Serializable {
 
     private TaskListener listener;
 

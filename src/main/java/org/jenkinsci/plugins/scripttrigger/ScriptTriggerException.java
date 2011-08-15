@@ -5,18 +5,16 @@ package org.jenkinsci.plugins.scripttrigger;
  */
 public class ScriptTriggerException extends Exception {
 
-    public ScriptTriggerException() {
+    public ScriptTriggerException(String message) {
+        super(message);
     }
 
-    public ScriptTriggerException(String s) {
-        super(s);
-    }
-
-    public ScriptTriggerException(String s, Throwable throwable) {
-        super(s, throwable);
+    public ScriptTriggerException(String messsage, Throwable throwable) {
+        super(messsage, throwable);
     }
 
     public ScriptTriggerException(Throwable throwable) {
         super(throwable);
     }
+
 }
