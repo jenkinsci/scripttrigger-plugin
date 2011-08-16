@@ -82,7 +82,7 @@ public class ScriptTriggerExecutor implements Serializable {
         return (Launcher.LocalLauncher) launcher;
     }
 
-    private String getStringContent(final String filePath) throws ScriptTriggerException {
+    protected String getStringContent(final String filePath) throws ScriptTriggerException {
 
         assert filePath != null;
 
@@ -139,29 +139,6 @@ public class ScriptTriggerExecutor implements Serializable {
             throw new ScriptTriggerException(ie);
         } catch (IOException ioe) {
             throw new ScriptTriggerException(ioe);
-        }
-    }
-
-    protected String getContent(FilePath node, final String path) throws ScriptTriggerException {
-
-        try {
-            return node.act(new FilePath.FileCallable<String>() {
-
-                public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                    StringBuffer content = new StringBuffer();
-                    FileReader fileReader = new FileReader(path);
-                    BufferedReader bufferedReader = new BufferedReader(fileReader);
-                    String line;
-                    while ((line = bufferedReader.readLine()) != null) {
-                        content.append(line);
-                    }
-                    return content.toString();
-                }
-            });
-        } catch (IOException ioe) {
-            throw new ScriptTriggerException(ioe);
-        } catch (InterruptedException ie) {
-            throw new ScriptTriggerException(ie);
         }
     }
 

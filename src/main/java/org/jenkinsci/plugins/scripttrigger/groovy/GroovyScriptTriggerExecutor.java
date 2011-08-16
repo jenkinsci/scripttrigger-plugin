@@ -54,7 +54,7 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
             return false;
         }
 
-        String scriptContent = getContent(executionNodeRootPath, scriptFilePath);
+        String scriptContent = getStringContent(scriptFilePath);
         return evaluateGroovyScript(scriptContent);
     }
 
