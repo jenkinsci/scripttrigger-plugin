@@ -4,7 +4,10 @@ import antlr.ANTLRException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Hudson;
+import hudson.model.Item;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -68,28 +71,12 @@ public class ScriptTrigger extends AbstractTrigger {
 
 
     @Override
-    protected boolean checkIfModified(ScriptTriggerLog log) throws ScriptTriggerException {
-
-        FilePath executionScriptRootPath = getExecutionNodeRootPath();
-        if (isNodeOff(executionScriptRootPath)) {
-            log.info("The execution node is off.");
-            return false;
-        }
-
-        assert executionScriptRootPath != null;
+    protected boolean checkIfModifiedByExecutingScript(FilePath executionScriptRootPath, ScriptTriggerLog log) throws ScriptTriggerException {
 
         int expectedExitCode = getExpectedExitCode();
-        log.info("The expected script execution code will be " + expectedExitCode);
+        log.info("The expected script execution code is " + expectedExitCode);
 
         return checkIfModifiedWithScriptsEvaluation(executionScriptRootPath, expectedExitCode, log);
-    }
-
-    private boolean isNodeOff(FilePath executionScriptRootPath) {
-        //if the node is off, the value is null, return no modification
-        if (executionScriptRootPath == null) {
-            return true;
-        }
-        return false;
     }
 
     private int getExpectedExitCode() throws ScriptTriggerException {
@@ -109,8 +96,7 @@ public class ScriptTrigger extends AbstractTrigger {
 
     private boolean checkIfModifiedWithScriptsEvaluation(FilePath rootPathExecution, int expectedExitCode, ScriptTriggerLog log) throws ScriptTriggerException {
 
-        TaskListener listener = getListener();
-        ScriptTriggerExecutor executor = getScriptTriggerExecutor(rootPathExecution, listener, log);
+        ScriptTriggerExecutor executor = getScriptTriggerExecutor(rootPathExecution, log);
 
         if (script != null) {
             int exitCode = executor.executeScriptAndGetExitCode(script);
@@ -131,8 +117,8 @@ public class ScriptTrigger extends AbstractTrigger {
         return false;
     }
 
-    private ScriptTriggerExecutor getScriptTriggerExecutor(FilePath rootPathExecution, TaskListener listener, ScriptTriggerLog log) throws ScriptTriggerException {
-        return new ScriptTriggerExecutor(rootPathExecution, listener, log);
+    private ScriptTriggerExecutor getScriptTriggerExecutor(FilePath rootPathExecution, ScriptTriggerLog log) throws ScriptTriggerException {
+        return new ScriptTriggerExecutor(rootPathExecution, getListener(), log);
     }
 
     private boolean testExpectedExitCode(int exitCode, int expectedExitCode, ScriptTriggerLog log) {

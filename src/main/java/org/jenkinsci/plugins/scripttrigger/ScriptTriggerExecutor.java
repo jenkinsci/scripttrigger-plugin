@@ -109,7 +109,6 @@ public class ScriptTriggerExecutor implements Serializable {
         log.info(String.format("Evaluating the script: \n %s", scriptContent));
         try {
 
-
             boolean isUnix = executionNodeRootPath.act(new Callable<Boolean, ScriptTriggerException>() {
                 public Boolean call() throws ScriptTriggerException {
                     return File.pathSeparatorChar == ':';

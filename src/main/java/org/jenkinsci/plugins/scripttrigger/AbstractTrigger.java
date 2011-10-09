@@ -7,7 +7,10 @@ import hudson.model.*;
 import hudson.triggers.Trigger;
 import hudson.util.StreamTaskListener;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Iterator;
@@ -23,6 +26,8 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
 
     private static Logger LOGGER = Logger.getLogger(AbstractTrigger.class.getName());
 
+    protected transient TaskListener listener;
+
     public AbstractTrigger(String cronTabSpec) throws ANTLRException {
         super(cronTabSpec);
     }
@@ -36,10 +41,13 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
         if (!Hudson.getInstance().isQuietingDown() && ((AbstractProject) this.job).isBuildable()) {
             AbstractScriptTriggerDescriptor descriptor = getDescriptor();
             ExecutorService executorService = descriptor.getExecutor();
-            StreamTaskListener listener;
             try {
-                listener = new StreamTaskListener(getLogFile());
-                ScriptTriggerLog log = new ScriptTriggerLog(listener);
+                try {
+                    listener = new StreamTaskListener(getLogFile(), Charset.forName("UTF-8"));
+                } catch (IOException e) {
+                    listener = null;
+                }
+                ScriptTriggerLog log = new ScriptTriggerLog(getListener());
                 if (job instanceof AbstractProject) {
                     AsynchronousTask asynchronousTask = new AsynchronousTask((AbstractProject) job, log);
                     executorService.execute(asynchronousTask);
@@ -53,8 +61,11 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
         }
     }
 
-    protected abstract File getLogFile();
+    protected TaskListener getListener() {
+        return listener;
+    }
 
+    protected abstract File getLogFile();
 
     protected class AsynchronousTask implements Runnable, Serializable {
 
@@ -92,17 +103,48 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
 
     protected abstract void logNoChanges(ScriptTriggerLog log);
 
-    protected abstract boolean checkIfModified(ScriptTriggerLog log) throws ScriptTriggerException;
+    protected boolean checkIfModified(ScriptTriggerLog log) throws ScriptTriggerException {
+        Node executingNode = getActiveNode();
+        if (isNodeOff(executingNode)) {
+            log.info("The execution node is off.");
+            return false;
+        }
+
+        assert executingNode != null;
+        FilePath executionScriptRootPath = executingNode.getRootPath();
+        assert executionScriptRootPath != null;
+        log.info("Polling on " + getNodeName(executingNode));
+
+        return checkIfModifiedByExecutingScript(executionScriptRootPath, log);
+    }
+
+    private boolean isNodeOff(Node node) {
+        if (node == null) {
+            return true;
+        }
+        return false;
+    }
+
+    private String getNodeName(Node node) {
+        assert node != null;
+        String name = node.getNodeName();
+        if (name == null || name.length() == 0) {
+            name = "master";
+        }
+        return name;
+    }
+
+    protected abstract boolean checkIfModifiedByExecutingScript(FilePath executionScriptRootPath, ScriptTriggerLog log);
 
     protected Action[] getScheduleAction(ScriptTriggerLog log) throws ScriptTriggerException {
         return new Action[0];
     }
 
-    protected FilePath getExecutionNodeRootPath() {
+    protected Node getActiveNode() {
         AbstractProject p = (AbstractProject) job;
         Label label = p.getAssignedLabel();
         if (label == null) {
-            return Hudson.getInstance().getRootPath();
+            return Hudson.getInstance();
         } else {
             Set<Node> nodes = label.getNodes();
             Node node;
@@ -110,30 +152,29 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
                 node = it.next();
                 FilePath nodePath = node.getRootPath();
                 if (nodePath != null) {
-                    return nodePath;
+                    return node;
                 }
             }
             return null;
         }
     }
 
-    protected TaskListener getListener() throws ScriptTriggerException {
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(getLogFile());
-            TaskListener listener = new StreamBuildListener(fos);
-            return listener;
-        } catch (FileNotFoundException fne) {
-            throw new ScriptTriggerException(fne);
-        } finally {
-            try {
-                if (fos != null) {
-                    fos.close();
-                }
-            } catch (IOException ioe) {
-                throw new ScriptTriggerException(ioe);
-            }
-        }
-    }
-
+//    protected TaskListener getListener() throws ScriptTriggerException {
+//        FileOutputStream fos = null;
+//        try {
+//            fos = new FileOutputStream(getLogFile());
+//            TaskListener listener = new StreamBuildListener(fos);
+//            return listener;
+//        } catch (FileNotFoundException fne) {
+//            throw new ScriptTriggerException(fne);
+//        } finally {
+//            try {
+//                if (fos != null) {
+//                    fos.close();
+//                }
+//            } catch (IOException ioe) {
+//                throw new ScriptTriggerException(ioe);
+//            }
+//        }
+//    }
 }

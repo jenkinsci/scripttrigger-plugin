@@ -79,30 +79,38 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
         if (propertiesFilePath != null) {
             try {
-                return getExecutionNodeRootPath().act(new FilePath.FileCallable<Action[]>() {
 
-                    public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                        File propFile = new File(propertiesFilePath);
-                        if (!propFile.exists()) {
-                            log.info(String.format("Can't load the properties file '%s'. It doesn't exist.", f.getPath()));
-                            return null;
-                        }
+                Node activeNode = getActiveNode();
+                if (activeNode == null) {
+                    log.info("No active node for the execution");
+                    return null;
+                }
 
-                        Properties properties = new Properties();
-                        FileInputStream fis = new FileInputStream(propFile);
-                        properties.load(fis);
-                        fis.close();
+                return activeNode.getRootPath()
+                        .act(new FilePath.FileCallable<Action[]>() {
 
-                        List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
-                        for (Map.Entry property : properties.entrySet()) {
-                            ParameterValue parameterValue = new StringParameterValue(
-                                    String.valueOf(property.getKey()),
-                                    String.valueOf(property.getValue()));
-                            parameterValueList.add(parameterValue);
-                        }
-                        return new Action[]{new ParametersAction(parameterValueList)};
-                    }
-                });
+                            public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+                                File propFile = new File(propertiesFilePath);
+                                if (!propFile.exists()) {
+                                    log.info(String.format("Can't load the properties file '%s'. It doesn't exist.", f.getPath()));
+                                    return null;
+                                }
+
+                                Properties properties = new Properties();
+                                FileInputStream fis = new FileInputStream(propFile);
+                                properties.load(fis);
+                                fis.close();
+
+                                List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
+                                for (Map.Entry property : properties.entrySet()) {
+                                    ParameterValue parameterValue = new StringParameterValue(
+                                            String.valueOf(property.getKey()),
+                                            String.valueOf(property.getValue()));
+                                    parameterValueList.add(parameterValue);
+                                }
+                                return new Action[]{new ParametersAction(parameterValueList)};
+                            }
+                        });
             } catch (IOException ioe) {
                 throw new ScriptTriggerException(ioe);
             } catch (InterruptedException ie) {
@@ -114,20 +122,9 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
 
     @Override
-    protected boolean checkIfModified(final ScriptTriggerLog log) throws ScriptTriggerException {
+    protected boolean checkIfModifiedByExecutingScript(FilePath executionScriptRootPath, ScriptTriggerLog log) throws ScriptTriggerException {
 
-        FilePath executionScriptRootPath = getExecutionNodeRootPath();
-        //if the node is off, the value is null, return no modification
-        if (executionScriptRootPath == null) {
-            return false;
-        }
-
-        return checkIfModifiedWithScriptsEvaluation(executionScriptRootPath, log);
-    }
-
-    private boolean checkIfModifiedWithScriptsEvaluation(FilePath rootExecutionPath, final ScriptTriggerLog log) throws ScriptTriggerException {
-
-        GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(rootExecutionPath, log);
+        GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(executionScriptRootPath, log);
 
         if (groovyExpression != null) {
             boolean evaluationSucceed = executor.evaluateGroovyScript(getGroovyExpression());
@@ -147,8 +144,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
     }
 
     private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(FilePath rootPathExecution, ScriptTriggerLog log) throws ScriptTriggerException {
-        TaskListener listener = getListener();
-        return new GroovyScriptTriggerExecutor(rootPathExecution, listener, log);
+        return new GroovyScriptTriggerExecutor(rootPathExecution, getListener(), log);
     }
 
 
