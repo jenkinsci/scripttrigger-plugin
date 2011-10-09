@@ -63,7 +63,7 @@ public class ScriptTrigger extends AbstractTrigger {
 
     @Override
     protected void logNoChanges(ScriptTriggerLog log) {
-        log.info("The script doesn't return the expected code.");
+        log.info("No changes. The script doesn't return the expected code or it can't be evaluated.");
     }
 
 
@@ -71,15 +71,25 @@ public class ScriptTrigger extends AbstractTrigger {
     protected boolean checkIfModified(ScriptTriggerLog log) throws ScriptTriggerException {
 
         FilePath executionScriptRootPath = getExecutionNodeRootPath();
-        //if the node is off, the value is null, return no modification
-        if (executionScriptRootPath == null) {
+        if (isNodeOff(executionScriptRootPath)) {
+            log.info("The execution node is off.");
             return false;
         }
+
+        assert executionScriptRootPath != null;
 
         int expectedExitCode = getExpectedExitCode();
         log.info("The expected script execution code will be " + expectedExitCode);
 
         return checkIfModifiedWithScriptsEvaluation(executionScriptRootPath, expectedExitCode, log);
+    }
+
+    private boolean isNodeOff(FilePath executionScriptRootPath) {
+        //if the node is off, the value is null, return no modification
+        if (executionScriptRootPath == null) {
+            return true;
+        }
+        return false;
     }
 
     private int getExpectedExitCode() throws ScriptTriggerException {
@@ -127,7 +137,7 @@ public class ScriptTrigger extends AbstractTrigger {
 
     private boolean testExpectedExitCode(int exitCode, int expectedExitCode, ScriptTriggerLog log) {
         log.info(String.format("The exit code is '%s'.", exitCode));
-        log.info(String.format("Testing if the script execution code returns : '%s'.", expectedExitCode));
+        log.info(String.format("Testing if the script execution code returns '%s'.", expectedExitCode));
         return expectedExitCode == exitCode;
     }
 

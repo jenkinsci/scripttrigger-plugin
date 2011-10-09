@@ -3,7 +3,7 @@ package org.jenkinsci.plugins.scripttrigger;
 /**
  * @author Gregory Boissinot
  */
-public class ScriptTriggerException extends Exception {
+public class ScriptTriggerException extends RuntimeException {
 
     public ScriptTriggerException(String message) {
         super(message);

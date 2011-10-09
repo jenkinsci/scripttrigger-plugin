@@ -4,7 +4,6 @@ import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
@@ -57,6 +56,9 @@ public class ScriptTriggerExecutor implements Serializable {
     }
 
     private String getResolvedContentWithEnvVars(final String scriptContent) throws ScriptTriggerException {
+
+        assert executionNodeRootPath != null;
+
         String scriptContentResolved;
         try {
             log.info("Resolving environment variables for script the content.");
@@ -74,13 +76,6 @@ public class ScriptTriggerExecutor implements Serializable {
         return scriptContentResolved;
     }
 
-    private Launcher.LocalLauncher getLocalLauncher(TaskListener listener) throws ScriptTriggerException {
-        final Launcher launcher = Hudson.getInstance().createLauncher(listener);
-        if (!(launcher instanceof Launcher.LocalLauncher)) {
-            throw new ScriptTriggerException("The launcher object must be a local launcher");
-        }
-        return (Launcher.LocalLauncher) launcher;
-    }
 
     protected String getStringContent(final String filePath) throws ScriptTriggerException {
 
@@ -114,20 +109,26 @@ public class ScriptTriggerExecutor implements Serializable {
         log.info(String.format("Evaluating the script: \n %s", scriptContent));
         try {
 
-            final Launcher.LocalLauncher localLauncher = getLocalLauncher(listener);
-            return executionNodeRootPath.act(new Callable<Integer, ScriptTriggerException>() {
-                public Integer call() throws ScriptTriggerException {
-                    FilePath tmpFile;
+
+            boolean isUnix = executionNodeRootPath.act(new Callable<Boolean, ScriptTriggerException>() {
+                public Boolean call() throws ScriptTriggerException {
+                    return File.pathSeparatorChar == ':';
+                }
+            });
+
+            CommandInterpreter batchRunner;
+            if (isUnix) {
+                batchRunner = new Shell(scriptContent);
+            } else {
+                batchRunner = new BatchFile(scriptContent);
+            }
+            FilePath tmpFile = batchRunner.createScriptFile(executionNodeRootPath);
+            final String[] cmd = batchRunner.buildCommandLine(tmpFile);
+
+            return executionNodeRootPath.act(new FilePath.FileCallable<Integer>() {
+                public Integer invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
-                        boolean isUnix = File.pathSeparatorChar == ':';
-                        final CommandInterpreter batchRunner;
-                        if (isUnix) {
-                            batchRunner = new Shell(scriptContent);
-                        } else {
-                            batchRunner = new BatchFile(scriptContent);
-                        }
-                        tmpFile = batchRunner.createScriptFile(executionNodeRootPath);
-                        return localLauncher.launch().cmds(batchRunner.buildCommandLine(tmpFile)).stdout(listener).pwd(executionNodeRootPath).join();
+                        return getLocalLauncher(listener).launch().cmds(cmd).stdout(listener).pwd(executionNodeRootPath).join();
                     } catch (InterruptedException ie) {
                         throw new ScriptTriggerException(ie);
                     } catch (IOException ioe) {
@@ -140,6 +141,10 @@ public class ScriptTriggerExecutor implements Serializable {
         } catch (IOException ioe) {
             throw new ScriptTriggerException(ioe);
         }
+    }
+
+    private Launcher getLocalLauncher(TaskListener listener) throws ScriptTriggerException {
+        return new Launcher.LocalLauncher(listener);
     }
 
     protected boolean existsScript(final String path) throws ScriptTriggerException {
