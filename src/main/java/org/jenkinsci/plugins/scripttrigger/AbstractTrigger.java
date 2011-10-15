@@ -159,22 +159,4 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
         }
     }
 
-//    protected TaskListener getListener() throws ScriptTriggerException {
-//        FileOutputStream fos = null;
-//        try {
-//            fos = new FileOutputStream(getLogFile());
-//            TaskListener listener = new StreamBuildListener(fos);
-//            return listener;
-//        } catch (FileNotFoundException fne) {
-//            throw new ScriptTriggerException(fne);
-//        } finally {
-//            try {
-//                if (fos != null) {
-//                    fos.close();
-//                }
-//            } catch (IOException ioe) {
-//                throw new ScriptTriggerException(ioe);
-//            }
-//        }
-//    }
 }
