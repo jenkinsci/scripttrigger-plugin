@@ -2,12 +2,8 @@ package org.jenkinsci.plugins.scripttrigger;
 
 import antlr.ANTLRException;
 import hudson.Extension;
-import hudson.FilePath;
 import hudson.Util;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
-import hudson.model.Hudson;
-import hudson.model.Item;
+import hudson.model.*;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -71,12 +67,12 @@ public class ScriptTrigger extends AbstractTrigger {
 
 
     @Override
-    protected boolean checkIfModifiedByExecutingScript(FilePath executionScriptRootPath, ScriptTriggerLog log) throws ScriptTriggerException {
+    protected boolean checkIfModifiedByExecutingScript(Node executingNode, ScriptTriggerLog log) throws ScriptTriggerException {
 
         int expectedExitCode = getExpectedExitCode();
         log.info("The expected script execution code is " + expectedExitCode);
 
-        return checkIfModifiedWithScriptsEvaluation(executionScriptRootPath, expectedExitCode, log);
+        return checkIfModifiedWithScriptsEvaluation(executingNode, expectedExitCode, log);
     }
 
     private int getExpectedExitCode() throws ScriptTriggerException {
@@ -94,12 +90,12 @@ public class ScriptTrigger extends AbstractTrigger {
     }
 
 
-    private boolean checkIfModifiedWithScriptsEvaluation(FilePath rootPathExecution, int expectedExitCode, ScriptTriggerLog log) throws ScriptTriggerException {
+    private boolean checkIfModifiedWithScriptsEvaluation(Node executingNode, int expectedExitCode, ScriptTriggerLog log) throws ScriptTriggerException {
 
-        ScriptTriggerExecutor executor = getScriptTriggerExecutor(rootPathExecution, log);
+        ScriptTriggerExecutor executor = getScriptTriggerExecutor(log);
 
         if (script != null) {
-            int exitCode = executor.executeScriptAndGetExitCode(script);
+            int exitCode = executor.executeScriptAndGetExitCode(executingNode, job, script);
             boolean evaluationSucceed = testExpectedExitCode(exitCode, expectedExitCode, log);
             if (evaluationSucceed) {
                 return true;
@@ -107,7 +103,7 @@ public class ScriptTrigger extends AbstractTrigger {
         }
 
         if (scriptFilePath != null) {
-            int exitCode = executor.executeScriptPathAndGetExitCode(scriptFilePath);
+            int exitCode = executor.executeScriptPathAndGetExitCode(executingNode, job, scriptFilePath);
             boolean evaluationSucceed = testExpectedExitCode(exitCode, expectedExitCode, log);
             if (evaluationSucceed) {
                 return true;
@@ -117,8 +113,8 @@ public class ScriptTrigger extends AbstractTrigger {
         return false;
     }
 
-    private ScriptTriggerExecutor getScriptTriggerExecutor(FilePath rootPathExecution, ScriptTriggerLog log) throws ScriptTriggerException {
-        return new ScriptTriggerExecutor(rootPathExecution, getListener(), log);
+    private ScriptTriggerExecutor getScriptTriggerExecutor(ScriptTriggerLog log) throws ScriptTriggerException {
+        return new ScriptTriggerExecutor(getListener(), log);
     }
 
     private boolean testExpectedExitCode(int exitCode, int expectedExitCode, ScriptTriggerLog log) {

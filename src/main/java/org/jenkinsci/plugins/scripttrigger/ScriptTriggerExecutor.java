@@ -4,7 +4,7 @@ import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.BatchFile;
@@ -12,77 +12,95 @@ import hudson.tasks.CommandInterpreter;
 import hudson.tasks.Shell;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Gregory Boissinot
  */
 public class ScriptTriggerExecutor implements Serializable {
 
-    protected FilePath executionNodeRootPath;
-
     protected TaskListener listener;
 
     protected ScriptTriggerLog log;
 
-    public ScriptTriggerExecutor(FilePath executionNodeRootPath, TaskListener listener, ScriptTriggerLog log) {
-        this.executionNodeRootPath = executionNodeRootPath;
+    public ScriptTriggerExecutor(TaskListener listener, ScriptTriggerLog log) {
         this.listener = listener;
         this.log = log;
     }
 
-    public int executeScriptAndGetExitCode(final String scriptContent) throws ScriptTriggerException {
+    public int executeScriptAndGetExitCode(Node executingNode, Item job, final String scriptContent) throws ScriptTriggerException {
 
         if (scriptContent == null) {
             throw new NullPointerException("A scriptContent object must be set.");
         }
 
-        String scriptContentResolved = getResolvedContentWithEnvVars(scriptContent);
-        return executeScript(scriptContentResolved);
+        String scriptContentResolved = getResolvedContentWithEnvVars(executingNode, job, scriptContent);
+        return executeScript(executingNode, scriptContentResolved);
     }
 
 
-    public int executeScriptPathAndGetExitCode(String scriptFilePath) throws ScriptTriggerException {
+    public int executeScriptPathAndGetExitCode(Node executingNode, Item job, String scriptFilePath) throws ScriptTriggerException {
 
         if (scriptFilePath == null) {
             throw new NullPointerException("The scriptFilePath object must be set.");
         }
 
-        if (!existsScript(scriptFilePath)) {
+        if (!existsScript(executingNode, scriptFilePath)) {
             throw new ScriptTriggerException(String.format("The script file path '%s' doesn't exist.", scriptFilePath));
         }
 
-        String scriptContent = getStringContent(scriptFilePath);
-        return executeScriptAndGetExitCode(scriptContent);
+        String scriptContent = getStringContent(executingNode, scriptFilePath);
+        return executeScriptAndGetExitCode(executingNode, job, scriptContent);
     }
 
-    private String getResolvedContentWithEnvVars(final String scriptContent) throws ScriptTriggerException {
+    private String getResolvedContentWithEnvVars(Node executingNode, Item job, final String scriptContent) throws ScriptTriggerException {
+        assert executingNode != null;
 
-        assert executionNodeRootPath != null;
-
-        String scriptContentResolved;
+        Map<String, String> env;
         try {
-            log.info("Resolving environment variables for script the content.");
-            scriptContentResolved =
-                    executionNodeRootPath.act(new FilePath.FileCallable<String>() {
-                        public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                            return Util.replaceMacro(scriptContent, EnvVars.masterEnvVars);
-                        }
-                    });
+            env = getEnvVarsForScript(executingNode, job);
         } catch (IOException ioe) {
-            throw new ScriptTriggerException("Error to execute the script", ioe);
+            throw new ScriptTriggerException("Error to resolve env Vars", ioe);
         } catch (InterruptedException ie) {
-            throw new ScriptTriggerException("Error to execute the script", ie);
+            throw new ScriptTriggerException("Error to resolve env Vars", ie);
         }
-        return scriptContentResolved;
+        return Util.replaceMacro(scriptContent, env);
+    }
+
+    private Map<String, String> getEnvVarsForScript(Node executingNode, final Item job) throws ScriptTriggerException, IOException, InterruptedException {
+        Map<String, String> env = new HashMap<String, String>();
+        env.putAll(executingNode.getRootPath().act(new Callable<Map<String, String>, ScriptTriggerException>() {
+            public Map<String, String> call() throws ScriptTriggerException {
+                Map<String, String> env = new HashMap<String, String>();
+                env.putAll(EnvVars.masterEnvVars);
+                return env;
+            }
+        }));
+
+        env.put("JENKINS_SERVER_COOKIE", Util.getDigestOf("ServerID:" + Hudson.getInstance().getSecretKey()));
+        env.put("HUDSON_SERVER_COOKIE", Util.getDigestOf("ServerID:" + Hudson.getInstance().getSecretKey())); // Legacy compatibility
+        env.put("JOB_NAME", job.getFullName());
+        env.put("JENKINS_HOME", Hudson.getInstance().getRootDir().getPath());
+        env.put("HUDSON_HOME", Hudson.getInstance().getRootDir().getPath());   // legacy compatibility
+        env.put("NODE_NAME", executingNode.getNodeName());
+        env.put("NODE_LABELS", Util.join(executingNode.getAssignedLabels(), " "));
+
+        //Workspace (maybe not exist yet)
+        if (job instanceof TopLevelItem) {
+            env.put("WORKSPACE", Hudson.getInstance().getWorkspaceFor((TopLevelItem) job).getRemote());
+        }
+
+        return env;
     }
 
 
-    protected String getStringContent(final String filePath) throws ScriptTriggerException {
+    protected String getStringContent(Node executingNode, final String filePath) throws ScriptTriggerException {
 
         assert filePath != null;
 
         try {
-            return executionNodeRootPath.act(new FilePath.FileCallable<String>() {
+            return executingNode.getRootPath().act(new FilePath.FileCallable<String>() {
 
                 public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     StringBuffer content = new StringBuffer();
@@ -102,14 +120,14 @@ public class ScriptTriggerExecutor implements Serializable {
         }
     }
 
-    private int executeScript(final String scriptContent) throws ScriptTriggerException {
+    private int executeScript(final Node executingNode, final String scriptContent) throws ScriptTriggerException {
 
         assert scriptContent != null;
 
         log.info(String.format("Evaluating the script: \n %s", scriptContent));
         try {
 
-            boolean isUnix = executionNodeRootPath.act(new Callable<Boolean, ScriptTriggerException>() {
+            boolean isUnix = executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
                 public Boolean call() throws ScriptTriggerException {
                     return File.pathSeparatorChar == ':';
                 }
@@ -121,13 +139,14 @@ public class ScriptTriggerExecutor implements Serializable {
             } else {
                 batchRunner = new BatchFile(scriptContent);
             }
-            FilePath tmpFile = batchRunner.createScriptFile(executionNodeRootPath);
+            FilePath tmpFile = batchRunner.createScriptFile(executingNode.getRootPath());
             final String[] cmd = batchRunner.buildCommandLine(tmpFile);
 
-            return executionNodeRootPath.act(new FilePath.FileCallable<Integer>() {
+            final FilePath rootPath = executingNode.getRootPath();
+            return rootPath.act(new FilePath.FileCallable<Integer>() {
                 public Integer invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
-                        return getLocalLauncher(listener).launch().cmds(cmd).stdout(listener).pwd(executionNodeRootPath).join();
+                        return getLocalLauncher(listener).launch().cmds(cmd).stdout(listener).pwd(rootPath).join();
                     } catch (InterruptedException ie) {
                         throw new ScriptTriggerException(ie);
                     } catch (IOException ioe) {
@@ -146,10 +165,9 @@ public class ScriptTriggerExecutor implements Serializable {
         return new Launcher.LocalLauncher(listener);
     }
 
-    protected boolean existsScript(final String path) throws ScriptTriggerException {
-
+    protected boolean existsScript(Node executingNode, final String path) throws ScriptTriggerException {
         try {
-            return executionNodeRootPath.act(new Callable<Boolean, ScriptTriggerException>() {
+            return executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
                 public Boolean call() throws ScriptTriggerException {
                     File f = new File(path);
                     if (!f.exists()) {

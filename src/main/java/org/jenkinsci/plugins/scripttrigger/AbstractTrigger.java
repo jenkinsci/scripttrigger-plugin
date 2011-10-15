@@ -115,7 +115,7 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
         assert executionScriptRootPath != null;
         log.info("Polling on " + getNodeName(executingNode));
 
-        return checkIfModifiedByExecutingScript(executionScriptRootPath, log);
+        return checkIfModifiedByExecutingScript(executingNode, log);
     }
 
     private boolean isNodeOff(Node node) {
@@ -134,7 +134,7 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
         return name;
     }
 
-    protected abstract boolean checkIfModifiedByExecutingScript(FilePath executionScriptRootPath, ScriptTriggerLog log);
+    protected abstract boolean checkIfModifiedByExecutingScript(Node executingNode, ScriptTriggerLog log);
 
     protected Action[] getScheduleAction(ScriptTriggerLog log) throws ScriptTriggerException {
         return new Action[0];
