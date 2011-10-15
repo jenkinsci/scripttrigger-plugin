@@ -122,19 +122,19 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
 
     @Override
-    protected boolean checkIfModifiedByExecutingScript(FilePath executionScriptRootPath, ScriptTriggerLog log) throws ScriptTriggerException {
+    protected boolean checkIfModifiedByExecutingScript(Node executingNode, ScriptTriggerLog log) throws ScriptTriggerException {
 
-        GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(executionScriptRootPath, log);
+        GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
 
         if (groovyExpression != null) {
-            boolean evaluationSucceed = executor.evaluateGroovyScript(getGroovyExpression());
+            boolean evaluationSucceed = executor.evaluateGroovyScript(executingNode, getGroovyExpression());
             if (evaluationSucceed) {
                 return true;
             }
         }
 
         if (groovyFilePath != null) {
-            boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(groovyFilePath);
+            boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(executingNode, groovyFilePath);
             if (evaluationSucceed) {
                 return true;
             }
@@ -143,8 +143,8 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         return false;
     }
 
-    private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(FilePath rootPathExecution, ScriptTriggerLog log) throws ScriptTriggerException {
-        return new GroovyScriptTriggerExecutor(rootPathExecution, getListener(), log);
+    private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(ScriptTriggerLog log) throws ScriptTriggerException {
+        return new GroovyScriptTriggerExecutor(getListener(), log);
     }
 
 
