@@ -1,10 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.409</version>
+        <version>1.424</version>
     </parent>
 
     <artifactId>scripttrigger</artifactId>
@@ -32,5 +33,14 @@
         <connection>scm:git:git://github.com/jenkinsci/scripttrigger-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/scripttrigger-plugin.git</developerConnection>
     </scm>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>envinject</artifactId>
+            <version>0.24</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 
 </project>

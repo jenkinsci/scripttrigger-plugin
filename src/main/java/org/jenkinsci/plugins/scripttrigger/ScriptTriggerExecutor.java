@@ -29,18 +29,18 @@ public class ScriptTriggerExecutor implements Serializable {
         this.log = log;
     }
 
-    public int executeScriptAndGetExitCode(Node executingNode, Item job, final String scriptContent) throws ScriptTriggerException {
+    public int executeScriptAndGetExitCode(Node executingNode, Item job, String scriptContent, Map<String, String> envVars) throws ScriptTriggerException {
 
         if (scriptContent == null) {
             throw new NullPointerException("A scriptContent object must be set.");
         }
 
-        String scriptContentResolved = getResolvedContentWithEnvVars(executingNode, job, scriptContent);
-        return executeScript(executingNode, scriptContentResolved);
+        String scriptContentResolved = getResolvedContentWithEnvVars(executingNode, job, scriptContent, envVars);
+        return executeScript(executingNode, scriptContentResolved, envVars);
     }
 
 
-    public int executeScriptPathAndGetExitCode(Node executingNode, Item job, String scriptFilePath) throws ScriptTriggerException {
+    public int executeScriptPathAndGetExitCode(Node executingNode, Item job, String scriptFilePath, Map<String, String> envVars) throws ScriptTriggerException {
 
         if (scriptFilePath == null) {
             throw new NullPointerException("The scriptFilePath object must be set.");
@@ -51,49 +51,13 @@ public class ScriptTriggerExecutor implements Serializable {
         }
 
         String scriptContent = getStringContent(executingNode, scriptFilePath);
-        return executeScriptAndGetExitCode(executingNode, job, scriptContent);
+        return executeScriptAndGetExitCode(executingNode, job, scriptContent, envVars);
     }
 
-    private String getResolvedContentWithEnvVars(Node executingNode, Item job, final String scriptContent) throws ScriptTriggerException {
+    private String getResolvedContentWithEnvVars(Node executingNode, Item job, final String scriptContent, Map<String, String> envVars) throws ScriptTriggerException {
         assert executingNode != null;
-
-        Map<String, String> env;
-        try {
-            env = getEnvVarsForScript(executingNode, job);
-        } catch (IOException ioe) {
-            throw new ScriptTriggerException("Error to resolve env Vars", ioe);
-        } catch (InterruptedException ie) {
-            throw new ScriptTriggerException("Error to resolve env Vars", ie);
-        }
-        return Util.replaceMacro(scriptContent, env);
+        return Util.replaceMacro(scriptContent, envVars);
     }
-
-    private Map<String, String> getEnvVarsForScript(Node executingNode, final Item job) throws ScriptTriggerException, IOException, InterruptedException {
-        Map<String, String> env = new HashMap<String, String>();
-        env.putAll(executingNode.getRootPath().act(new Callable<Map<String, String>, ScriptTriggerException>() {
-            public Map<String, String> call() throws ScriptTriggerException {
-                Map<String, String> env = new HashMap<String, String>();
-                env.putAll(EnvVars.masterEnvVars);
-                return env;
-            }
-        }));
-
-        env.put("JENKINS_SERVER_COOKIE", Util.getDigestOf("ServerID:" + Hudson.getInstance().getSecretKey()));
-        env.put("HUDSON_SERVER_COOKIE", Util.getDigestOf("ServerID:" + Hudson.getInstance().getSecretKey())); // Legacy compatibility
-        env.put("JOB_NAME", job.getFullName());
-        env.put("JENKINS_HOME", Hudson.getInstance().getRootDir().getPath());
-        env.put("HUDSON_HOME", Hudson.getInstance().getRootDir().getPath());   // legacy compatibility
-        env.put("NODE_NAME", executingNode.getNodeName());
-        env.put("NODE_LABELS", Util.join(executingNode.getAssignedLabels(), " "));
-
-        //Workspace (maybe not exist yet)
-        if (job instanceof TopLevelItem) {
-            env.put("WORKSPACE", Hudson.getInstance().getWorkspaceFor((TopLevelItem) job).getRemote());
-        }
-
-        return env;
-    }
-
 
     protected String getStringContent(Node executingNode, final String filePath) throws ScriptTriggerException {
 
@@ -120,7 +84,7 @@ public class ScriptTriggerExecutor implements Serializable {
         }
     }
 
-    private int executeScript(final Node executingNode, final String scriptContent) throws ScriptTriggerException {
+    private int executeScript(final Node executingNode, final String scriptContent, final Map<String, String> envVars) throws ScriptTriggerException {
 
         assert scriptContent != null;
 
@@ -146,7 +110,7 @@ public class ScriptTriggerExecutor implements Serializable {
             return rootPath.act(new FilePath.FileCallable<Integer>() {
                 public Integer invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
-                        return getLocalLauncher(listener).launch().cmds(cmd).stdout(listener).pwd(rootPath).join();
+                        return getLocalLauncher(listener).launch().cmds(cmd).envs(envVars).stdout(listener).pwd(rootPath).join();
                     } catch (InterruptedException ie) {
                         throw new ScriptTriggerException(ie);
                     } catch (IOException ioe) {
