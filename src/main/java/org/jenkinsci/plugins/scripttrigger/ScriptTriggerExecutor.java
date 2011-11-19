@@ -1,10 +1,11 @@
 package org.jenkinsci.plugins.scripttrigger;
 
-import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.*;
+import hudson.model.Item;
+import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.BatchFile;
@@ -12,7 +13,6 @@ import hudson.tasks.CommandInterpreter;
 import hudson.tasks.Shell;
 
 import java.io.*;
-import java.util.HashMap;
 import java.util.Map;
 
 /**

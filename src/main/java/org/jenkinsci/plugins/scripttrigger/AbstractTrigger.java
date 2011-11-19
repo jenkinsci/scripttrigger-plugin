@@ -6,15 +6,14 @@ import hudson.Util;
 import hudson.model.*;
 import hudson.triggers.Trigger;
 import hudson.util.StreamTaskListener;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,9 +46,9 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
                 } catch (IOException e) {
                     listener = null;
                 }
-                ScriptTriggerLog log = new ScriptTriggerLog(getListener());
+                ScriptTriggerLog scriptTriggerLog = new ScriptTriggerLog(listener);
                 if (job instanceof AbstractProject) {
-                    AsynchronousTask asynchronousTask = new AsynchronousTask((AbstractProject) job, log);
+                    AsynchronousTask asynchronousTask = new AsynchronousTask((AbstractProject) job, scriptTriggerLog, getLogFile());
                     executorService.execute(asynchronousTask);
                 }
 
@@ -71,32 +70,57 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
 
         private AbstractProject project;
 
-        private ScriptTriggerLog log;
+        private ScriptTriggerLog scriptTriggerLog;
 
-        private AsynchronousTask(AbstractProject project, ScriptTriggerLog log) {
+        private File logFile;
+
+        public AsynchronousTask(AbstractProject project, ScriptTriggerLog scriptTriggerLog, File logFile) {
             this.project = project;
-            this.log = log;
+            this.scriptTriggerLog = scriptTriggerLog;
+            this.logFile = logFile;
         }
 
         public void run() {
 
             try {
                 long start = System.currentTimeMillis();
-                log.info("Polling started on " + DateFormat.getDateTimeInstance().format(new Date(start)));
-                boolean changed = checkIfModified(log);
-                log.info("Polling complete. Took " + Util.getTimeSpanString(System.currentTimeMillis() - start));
+                scriptTriggerLog.info("Polling started on " + DateFormat.getDateTimeInstance().format(new Date(start)));
+                boolean changed = checkIfModified(scriptTriggerLog);
+                scriptTriggerLog.info("Polling complete. Took " + Util.getTimeSpanString(System.currentTimeMillis() - start));
                 if (changed) {
-                    logChanges(log);
-                    project.scheduleBuild(0, new ScriptTriggerCause(), getScheduleAction(log));
+                    logChanges(scriptTriggerLog);
+                    String scriptContent = Util.loadFile(logFile);
+                    String cause = extractRootCause(scriptContent);
+                    Action[] actions = getScheduledActions(scriptContent);
+                    project.scheduleBuild(0, new ScriptTriggerCause(cause), actions);
                 } else {
-                    logNoChanges(log);
+                    logNoChanges(scriptTriggerLog);
                 }
             } catch (ScriptTriggerException e) {
-                log.error("Polling error " + e.getMessage());
+                scriptTriggerLog.error("Polling error " + e.getMessage());
             } catch (Throwable e) {
-                log.error("SEVERE - Polling error " + e.getMessage());
+                scriptTriggerLog.error("SEVERE - Polling error " + e.getMessage());
             }
         }
+
+        private Action[] getScheduledActions(String scriptContent) throws IOException {
+            List<Action> actionList = new ArrayList<Action>();
+            actionList.addAll(Arrays.asList(getScheduleAction(scriptTriggerLog)));
+            String description = extractDescription(scriptContent);
+            if (description != null) {
+                actionList.add(new ScriptTriggerRunAction(description));
+            }
+            return actionList.toArray(new Action[actionList.size()]);
+        }
+
+        private String extractRootCause(String content) throws IOException {
+            return StringUtils.substringBetween(content, "<cause>", "</cause>");
+        }
+
+        private String extractDescription(String content) throws IOException {
+            return StringUtils.substringBetween(content, "<description>", "</description>");
+        }
+
     }
 
     protected abstract void logChanges(ScriptTriggerLog log);
