@@ -2,8 +2,6 @@ package org.jenkinsci.plugins.scripttrigger;
 
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.Util;
-import hudson.model.Item;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
@@ -29,18 +27,17 @@ public class ScriptTriggerExecutor implements Serializable {
         this.log = log;
     }
 
-    public int executeScriptAndGetExitCode(Node executingNode, Item job, String scriptContent, Map<String, String> envVars) throws ScriptTriggerException {
+    public int executeScriptAndGetExitCode(Node executingNode, String scriptContent, Map<String, String> envVars) throws ScriptTriggerException {
 
         if (scriptContent == null) {
             throw new NullPointerException("A scriptContent object must be set.");
         }
 
-        String scriptContentResolved = getResolvedContentWithEnvVars(executingNode, job, scriptContent, envVars);
-        return executeScript(executingNode, scriptContentResolved, envVars);
+        return executeScript(executingNode, scriptContent, envVars);
     }
 
 
-    public int executeScriptPathAndGetExitCode(Node executingNode, Item job, String scriptFilePath, Map<String, String> envVars) throws ScriptTriggerException {
+    public int executeScriptPathAndGetExitCode(Node executingNode, String scriptFilePath, Map<String, String> envVars) throws ScriptTriggerException {
 
         if (scriptFilePath == null) {
             throw new NullPointerException("The scriptFilePath object must be set.");
@@ -51,13 +48,9 @@ public class ScriptTriggerExecutor implements Serializable {
         }
 
         String scriptContent = getStringContent(executingNode, scriptFilePath);
-        return executeScriptAndGetExitCode(executingNode, job, scriptContent, envVars);
+        return executeScriptAndGetExitCode(executingNode, scriptContent, envVars);
     }
 
-    private String getResolvedContentWithEnvVars(Node executingNode, Item job, final String scriptContent, Map<String, String> envVars) throws ScriptTriggerException {
-        assert executingNode != null;
-        return Util.replaceMacro(scriptContent, envVars);
-    }
 
     protected String getStringContent(Node executingNode, final String filePath) throws ScriptTriggerException {
 

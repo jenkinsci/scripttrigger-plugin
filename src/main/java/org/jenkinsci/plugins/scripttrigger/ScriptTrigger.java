@@ -106,7 +106,7 @@ public class ScriptTrigger extends AbstractTrigger {
         Map<String, String> envVars = prepareAndGetEnvVars(executingNode);
 
         if (script != null) {
-            int exitCode = executor.executeScriptAndGetExitCode(executingNode, job, script, envVars);
+            int exitCode = executor.executeScriptAndGetExitCode(executingNode, script, envVars);
             boolean evaluationSucceed = testExpectedExitCode(exitCode, expectedExitCode, log);
             if (evaluationSucceed) {
                 return true;
@@ -114,7 +114,7 @@ public class ScriptTrigger extends AbstractTrigger {
         }
 
         if (scriptFilePath != null) {
-            int exitCode = executor.executeScriptPathAndGetExitCode(executingNode, job, scriptFilePath, envVars);
+            int exitCode = executor.executeScriptPathAndGetExitCode(executingNode, scriptFilePath, envVars);
             boolean evaluationSucceed = testExpectedExitCode(exitCode, expectedExitCode, log);
             if (evaluationSucceed) {
                 return true;
@@ -136,7 +136,7 @@ public class ScriptTrigger extends AbstractTrigger {
             }
         }
 
-        Map<String, String> env = new HashMap<String, String>();
+        Map<String, String> env;
         try {
             env = getNodeEnvVars(executingNode, job);
         } catch (IOException e) {
