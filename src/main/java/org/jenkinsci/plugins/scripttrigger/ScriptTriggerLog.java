@@ -15,6 +15,10 @@ public class ScriptTriggerLog implements Serializable {
         this.listener = listener;
     }
 
+    public TaskListener getListener() {
+        return listener;
+    }
+
     public void info(String message) {
         listener.getLogger().println(message);
     }

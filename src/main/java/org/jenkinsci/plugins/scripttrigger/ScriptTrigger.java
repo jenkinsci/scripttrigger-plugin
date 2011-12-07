@@ -6,11 +6,6 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.*;
 import hudson.remoting.Callable;
-import org.jenkinsci.plugins.envinject.EnvInjectJobProperty;
-import org.jenkinsci.plugins.envinject.EnvInjectJobPropertyInfo;
-import org.jenkinsci.plugins.envinject.EnvInjectLogger;
-import org.jenkinsci.plugins.envinject.service.EnvInjectEnvVars;
-import org.jenkinsci.plugins.envinject.service.EnvInjectVariableGetter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -103,7 +98,10 @@ public class ScriptTrigger extends AbstractTrigger {
     private boolean checkIfModifiedWithScriptsEvaluation(Node executingNode, int expectedExitCode, ScriptTriggerLog log) throws ScriptTriggerException {
 
         ScriptTriggerExecutor executor = getScriptTriggerExecutor(log);
-        Map<String, String> envVars = prepareAndGetEnvVars(executingNode);
+        //Map<String, String> envVars = prepareAndGetEnvVars(executingNode);
+        ScriptTriggerEnvVarsRetriever varsRetriever = new ScriptTriggerEnvVarsRetriever();
+        Map<String, String> envVars = varsRetriever.getEnvVars((AbstractProject)job, executingNode, log);
+
 
         if (script != null) {
             int exitCode = executor.executeScriptAndGetExitCode(executingNode, script, envVars);
@@ -124,30 +122,30 @@ public class ScriptTrigger extends AbstractTrigger {
         return false;
     }
 
-    private Map<String, String> prepareAndGetEnvVars(Node executingNode) {
-        Map<String, String> overrides = new HashMap<String, String>();
-        if (Hudson.getInstance().getPlugin("envinject") != null) {
-            try {
-                overrides = prepareEnvironmentWithEnvInjectPlugin(executingNode);
-            } catch (IOException e) {
-                throw new ScriptTriggerException(e);
-            } catch (InterruptedException e) {
-                throw new ScriptTriggerException(e);
-            }
-        }
-
-        Map<String, String> env;
-        try {
-            env = getNodeEnvVars(executingNode, job);
-        } catch (IOException e) {
-            throw new ScriptTriggerException(e);
-        } catch (InterruptedException e) {
-            throw new ScriptTriggerException(e);
-        }
-
-        env.putAll(overrides);
-        return env;
-    }
+//    private Map<String, String> prepareAndGetEnvVars(Node executingNode) {
+//        Map<String, String> overrides = new HashMap<String, String>();
+//        if (Hudson.getInstance().getPlugin("envinject") != null) {
+//            try {
+//                overrides = prepareEnvironmentWithEnvInjectPlugin(executingNode);
+//            } catch (IOException e) {
+//                throw new ScriptTriggerException(e);
+//            } catch (InterruptedException e) {
+//                throw new ScriptTriggerException(e);
+//            }
+//        }
+//
+//        Map<String, String> env;
+//        try {
+//            env = getNodeEnvVars(executingNode, job);
+//        } catch (IOException e) {
+//            throw new ScriptTriggerException(e);
+//        } catch (InterruptedException e) {
+//            throw new ScriptTriggerException(e);
+//        }
+//
+//        env.putAll(overrides);
+//        return env;
+//    }
 
     private Map<String, String> getNodeEnvVars(Node executingNode, final Item job) throws ScriptTriggerException, IOException, InterruptedException {
         Map<String, String> env = new HashMap<String, String>();
@@ -175,21 +173,21 @@ public class ScriptTrigger extends AbstractTrigger {
         return env;
     }
 
-    private Map<String, String> prepareEnvironmentWithEnvInjectPlugin(Node executingNode) throws IOException, InterruptedException {
-        EnvInjectVariableGetter variableGetter = new EnvInjectVariableGetter();
-        boolean isEnvInjectActivated = variableGetter.isEnvInjectJobPropertyActive((Project) job);
-        if (isEnvInjectActivated) {
-            EnvInjectJobProperty envInjectJobProperty = variableGetter.getEnvInjectJobProperty((Project) job);
-            EnvInjectJobPropertyInfo info = envInjectJobProperty.getInfo();
-            Map<String, String> infraEnvVarsMater = new HashMap<String, String>();
-            Map<String, String> infraEnvVarsNode = new HashMap<String, String>();
-            EnvInjectEnvVars envInjectEnvVarsService = new EnvInjectEnvVars(new EnvInjectLogger(listener));
-            Map<String, String> vars = envInjectEnvVarsService.processEnvVars(executingNode.getRootPath(), info, infraEnvVarsMater, infraEnvVarsNode);
-
-            return vars;
-        }
-        return new HashMap<String, String>();
-    }
+//    private Map<String, String> prepareEnvironmentWithEnvInjectPlugin(Node executingNode) throws IOException, InterruptedException {
+//        EnvInjectVariableGetter variableGetter = new EnvInjectVariableGetter();
+//        boolean isEnvInjectActivated = variableGetter.isEnvInjectJobPropertyActive((Project) job);
+//        if (isEnvInjectActivated) {
+//            EnvInjectJobProperty envInjectJobProperty = variableGetter.getEnvInjectJobProperty((Project) job);
+//            EnvInjectJobPropertyInfo info = envInjectJobProperty.getInfo();
+//            Map<String, String> infraEnvVarsMater = new HashMap<String, String>();
+//            Map<String, String> infraEnvVarsNode = new HashMap<String, String>();
+//            EnvInjectEnvVars envInjectEnvVarsService = new EnvInjectEnvVars(new EnvInjectLogger(listener));
+//            Map<String, String> vars = envInjectEnvVarsService.(executingNode.getRootPath(), info, infraEnvVarsMater, infraEnvVarsNode);
+//
+//            return vars;
+//        }
+//        return new HashMap<String, String>();
+//    }
 
     private ScriptTriggerExecutor getScriptTriggerExecutor(ScriptTriggerLog log) throws ScriptTriggerException {
         return new ScriptTriggerExecutor(getListener(), log);
