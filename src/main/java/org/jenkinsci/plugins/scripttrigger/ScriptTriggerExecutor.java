@@ -18,12 +18,9 @@ import java.util.Map;
  */
 public class ScriptTriggerExecutor implements Serializable {
 
-    protected TaskListener listener;
-
     protected ScriptTriggerLog log;
 
-    public ScriptTriggerExecutor(TaskListener listener, ScriptTriggerLog log) {
-        this.listener = listener;
+    public ScriptTriggerExecutor(ScriptTriggerLog log) {
         this.log = log;
     }
 
@@ -103,7 +100,7 @@ public class ScriptTriggerExecutor implements Serializable {
             return rootPath.act(new FilePath.FileCallable<Integer>() {
                 public Integer invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
-                        return getLocalLauncher(listener).launch().cmds(cmd).envs(envVars).stdout(listener).pwd(rootPath).join();
+                        return getLocalLauncher(log.getListener()).launch().cmds(cmd).envs(envVars).stdout(log.getListener()).pwd(rootPath).join();
                     } catch (InterruptedException ie) {
                         throw new ScriptTriggerException(ie);
                     } catch (IOException ioe) {

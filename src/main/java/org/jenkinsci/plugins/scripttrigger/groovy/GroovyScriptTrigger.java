@@ -144,7 +144,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
     }
 
     private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(ScriptTriggerLog log) throws ScriptTriggerException {
-        return new GroovyScriptTriggerExecutor(getListener(), log);
+        return new GroovyScriptTriggerExecutor(log);
     }
 
 

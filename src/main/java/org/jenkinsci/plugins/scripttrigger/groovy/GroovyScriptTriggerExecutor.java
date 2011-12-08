@@ -4,7 +4,6 @@ import groovy.lang.GroovyShell;
 import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.Node;
-import hudson.model.TaskListener;
 import hudson.remoting.Callable;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerExecutor;
@@ -17,8 +16,8 @@ import java.io.IOException;
  */
 public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
 
-    public GroovyScriptTriggerExecutor(TaskListener listener, ScriptTriggerLog log) {
-        super(listener, log);
+    public GroovyScriptTriggerExecutor(ScriptTriggerLog log) {
+        super(log);
     }
 
     public boolean evaluateGroovyScript(Node executingNode, final String scriptContent) throws ScriptTriggerException {

@@ -1,6 +1,6 @@
 package org.jenkinsci.plugins.scripttrigger;
 
-import hudson.model.TaskListener;
+import hudson.util.StreamTaskListener;
 
 import java.io.Serializable;
 
@@ -9,14 +9,10 @@ import java.io.Serializable;
  */
 public class ScriptTriggerLog implements Serializable {
 
-    private TaskListener listener;
+    private StreamTaskListener listener;
 
-    public ScriptTriggerLog(TaskListener listener) {
+    public ScriptTriggerLog(StreamTaskListener listener) {
         this.listener = listener;
-    }
-
-    public TaskListener getListener() {
-        return listener;
     }
 
     public void info(String message) {
@@ -27,4 +23,13 @@ public class ScriptTriggerLog implements Serializable {
         listener.getLogger().println("[ERROR] - " + message);
     }
 
+    public StreamTaskListener getListener() {
+        return listener;
+    }
+
+    public void closeQuietly() {
+        if (listener != null) {
+            listener.closeQuietly();
+        }
+    }
 }

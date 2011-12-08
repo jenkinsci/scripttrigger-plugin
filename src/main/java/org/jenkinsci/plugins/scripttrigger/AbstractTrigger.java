@@ -25,7 +25,6 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
 
     private static Logger LOGGER = Logger.getLogger(AbstractTrigger.class.getName());
 
-    protected transient TaskListener listener;
 
     public AbstractTrigger(String cronTabSpec) throws ANTLRException {
         super(cronTabSpec);
@@ -40,6 +39,7 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
         if (!Hudson.getInstance().isQuietingDown() && ((AbstractProject) this.job).isBuildable()) {
             AbstractScriptTriggerDescriptor descriptor = getDescriptor();
             ExecutorService executorService = descriptor.getExecutor();
+            StreamTaskListener listener;
             try {
                 try {
                     listener = new StreamTaskListener(getLogFile(), Charset.forName("UTF-8"));
@@ -51,17 +51,12 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
                     AsynchronousTask asynchronousTask = new AsynchronousTask((AbstractProject) job, scriptTriggerLog, getLogFile());
                     executorService.execute(asynchronousTask);
                 }
-
             } catch (Throwable t) {
                 executorService.shutdown();
                 LOGGER.log(Level.SEVERE, "Severe Error during the trigger execution " + t.getMessage());
                 t.printStackTrace();
             }
         }
-    }
-
-    protected TaskListener getListener() {
-        return listener;
     }
 
     protected abstract File getLogFile();
@@ -93,6 +88,7 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
                     String cause = extractRootCause(scriptContent);
                     Action[] actions = getScheduledActions(scriptContent);
                     project.scheduleBuild(0, new ScriptTriggerCause(cause), actions);
+                    scriptTriggerLog.closeQuietly();
                 } else {
                     logNoChanges(scriptTriggerLog);
                 }
