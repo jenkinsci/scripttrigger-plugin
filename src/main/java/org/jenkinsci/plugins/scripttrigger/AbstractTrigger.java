@@ -88,7 +88,6 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
                     String cause = extractRootCause(scriptContent);
                     Action[] actions = getScheduledActions(scriptContent);
                     project.scheduleBuild(0, new ScriptTriggerCause(cause), actions);
-                    scriptTriggerLog.closeQuietly();
                 } else {
                     logNoChanges(scriptTriggerLog);
                 }
@@ -96,6 +95,8 @@ public abstract class AbstractTrigger extends Trigger<BuildableItem> implements 
                 scriptTriggerLog.error("Polling error " + e.getMessage());
             } catch (Throwable e) {
                 scriptTriggerLog.error("SEVERE - Polling error " + e.getMessage());
+            } finally {
+                scriptTriggerLog.closeQuietly();
             }
         }
 
