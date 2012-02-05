@@ -5,9 +5,9 @@ import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.Node;
 import hudson.remoting.Callable;
+import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerExecutor;
-import org.jenkinsci.plugins.scripttrigger.ScriptTriggerLog;
 
 import java.io.IOException;
 
@@ -16,7 +16,7 @@ import java.io.IOException;
  */
 public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
 
-    public GroovyScriptTriggerExecutor(ScriptTriggerLog log) {
+    public GroovyScriptTriggerExecutor(XTriggerLog log) {
         super(log);
     }
 

@@ -23,9 +23,17 @@
         <developer>
             <id>gbois</id>
             <name>Gregory Boissinot</name>
+            <email>gregory.boissinot@gmail.com</email>
             <timezone>+1</timezone>
         </developer>
     </developers>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
+        <xtrigger.lib.version>0.7</xtrigger.lib.version>
+    </properties>
 
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/scripttrigger-plugin.git</connection>
@@ -34,10 +42,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>envinject</artifactId>
-            <version>1.0</version>
-            <optional>true</optional>
+            <groupId>org.jenkins-ci.lib</groupId>
+            <artifactId>xtrigger-lib</artifactId>
+            <version>${xtrigger.lib.version}</version>
         </dependency>
     </dependencies>
 

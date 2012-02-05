@@ -4,6 +4,10 @@ import antlr.ANTLRException;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.*;
+import org.jenkinsci.lib.envinject.EnvInjectException;
+import org.jenkinsci.lib.envinject.service.EnvVarsResolver;
+import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
+import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -57,18 +61,12 @@ public class ScriptTrigger extends AbstractTrigger {
     }
 
     @Override
-    protected void logChanges(ScriptTriggerLog log) {
-        log.info("The script returns the expected code. Scheduling a build.");
+    protected String getDefaultMessageCause() {
+        return "The execution script returns the expected exit code";
     }
 
     @Override
-    protected void logNoChanges(ScriptTriggerLog log) {
-        log.info("No changes. The script doesn't return the expected code or it can't be evaluated.");
-    }
-
-
-    @Override
-    protected boolean checkIfModifiedByExecutingScript(Node executingNode, ScriptTriggerLog log) throws ScriptTriggerException {
+    protected boolean checkIfModified(Node executingNode, XTriggerLog log) throws ScriptTriggerException {
 
         int expectedExitCode = getExpectedExitCode();
         log.info("The expected script execution code is " + expectedExitCode);
@@ -91,11 +89,17 @@ public class ScriptTrigger extends AbstractTrigger {
     }
 
 
-    private boolean checkIfModifiedWithScriptsEvaluation(Node executingNode, int expectedExitCode, ScriptTriggerLog log) throws ScriptTriggerException {
+    private boolean checkIfModifiedWithScriptsEvaluation(Node executingNode, int expectedExitCode, XTriggerLog log) throws ScriptTriggerException {
 
         ScriptTriggerExecutor executor = getScriptTriggerExecutor(log);
-        ScriptTriggerEnvVarsRetriever varsRetriever = new ScriptTriggerEnvVarsRetriever();
-        Map<String, String> envVars = varsRetriever.getEnvVars((AbstractProject) job, executingNode, log);
+
+        EnvVarsResolver envVarsResolver = new EnvVarsResolver();
+        Map<String, String> envVars;
+        try {
+            envVars = envVarsResolver.getPollingEnvVars((AbstractProject) job, executingNode);
+        } catch (EnvInjectException e) {
+            throw new ScriptTriggerException(e);
+        }
 
         if (script != null) {
             int exitCode = executor.executeScriptAndGetExitCode(executingNode, script, envVars);
@@ -116,11 +120,11 @@ public class ScriptTrigger extends AbstractTrigger {
         return false;
     }
 
-    private ScriptTriggerExecutor getScriptTriggerExecutor(ScriptTriggerLog log) throws ScriptTriggerException {
+    private ScriptTriggerExecutor getScriptTriggerExecutor(XTriggerLog log) throws ScriptTriggerException {
         return new ScriptTriggerExecutor(log);
     }
 
-    private boolean testExpectedExitCode(int exitCode, int expectedExitCode, ScriptTriggerLog log) {
+    private boolean testExpectedExitCode(int exitCode, int expectedExitCode, XTriggerLog log) {
         log.info(String.format("The exit code is '%s'.", exitCode));
         log.info(String.format("Testing if the script execution code returns '%s'.", expectedExitCode));
         return expectedExitCode == exitCode;
@@ -129,7 +133,7 @@ public class ScriptTrigger extends AbstractTrigger {
 
     @Extension
     @SuppressWarnings("unused")
-    public static class ScriptTriggerDescriptor extends AbstractScriptTriggerDescriptor {
+    public static class ScriptTriggerDescriptor extends XTriggerDescriptor {
 
         @Override
         public boolean isApplicable(Item item) {

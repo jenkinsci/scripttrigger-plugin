@@ -5,6 +5,7 @@ import hudson.model.Cause;
 /**
  * @author Gregory Boissinot
  */
+@Deprecated
 public class GroovyScriptTriggerCause extends Cause {
 
     @Override

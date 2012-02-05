@@ -9,6 +9,7 @@ import hudson.remoting.VirtualChannel;
 import hudson.tasks.BatchFile;
 import hudson.tasks.CommandInterpreter;
 import hudson.tasks.Shell;
+import org.jenkinsci.lib.xtrigger.XTriggerLog;
 
 import java.io.*;
 import java.util.Map;
@@ -18,9 +19,9 @@ import java.util.Map;
  */
 public class ScriptTriggerExecutor implements Serializable {
 
-    protected ScriptTriggerLog log;
+    protected XTriggerLog log;
 
-    public ScriptTriggerExecutor(ScriptTriggerLog log) {
+    public ScriptTriggerExecutor(XTriggerLog log) {
         this.log = log;
     }
 

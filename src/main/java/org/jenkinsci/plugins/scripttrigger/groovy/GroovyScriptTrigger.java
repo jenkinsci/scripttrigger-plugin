@@ -6,10 +6,10 @@ import hudson.FilePath;
 import hudson.Util;
 import hudson.model.*;
 import hudson.remoting.VirtualChannel;
-import org.jenkinsci.plugins.scripttrigger.AbstractScriptTriggerDescriptor;
+import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
+import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
-import org.jenkinsci.plugins.scripttrigger.ScriptTriggerLog;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -65,28 +65,16 @@ public class GroovyScriptTrigger extends AbstractTrigger {
     }
 
     @Override
-    protected void logChanges(ScriptTriggerLog log) {
-        log.info("Expression evaluation returns true. Scheduling a build.");
+    protected String getDefaultMessageCause() {
+        return "Groovy Expression evaluation to true.";
     }
 
     @Override
-    protected void logNoChanges(ScriptTriggerLog log) {
-        log.info("Expression evaluation returns false.");
-    }
-
-    @Override
-    protected Action[] getScheduleAction(final ScriptTriggerLog log) throws ScriptTriggerException {
+    protected Action[] getScheduledActions(Node pollingNode, final XTriggerLog log) throws ScriptTriggerException {
 
         if (propertiesFilePath != null) {
             try {
-
-                Node activeNode = getActiveNode();
-                if (activeNode == null) {
-                    log.info("No active node for the execution");
-                    return null;
-                }
-
-                return activeNode.getRootPath()
+                return pollingNode.getRootPath()
                         .act(new FilePath.FileCallable<Action[]>() {
 
                             public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
@@ -122,19 +110,19 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
 
     @Override
-    protected boolean checkIfModifiedByExecutingScript(Node executingNode, ScriptTriggerLog log) throws ScriptTriggerException {
+    protected boolean checkIfModified(Node pollingNode, XTriggerLog log) throws ScriptTriggerException {
 
         GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
 
         if (groovyExpression != null) {
-            boolean evaluationSucceed = executor.evaluateGroovyScript(executingNode, getGroovyExpression());
+            boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, getGroovyExpression());
             if (evaluationSucceed) {
                 return true;
             }
         }
 
         if (groovyFilePath != null) {
-            boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(executingNode, groovyFilePath);
+            boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, groovyFilePath);
             if (evaluationSucceed) {
                 return true;
             }
@@ -143,19 +131,13 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         return false;
     }
 
-    private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(ScriptTriggerLog log) throws ScriptTriggerException {
+    private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(XTriggerLog log) throws ScriptTriggerException {
         return new GroovyScriptTriggerExecutor(log);
-    }
-
-
-    @Override
-    public GroovyScriptTriggerDescriptor getDescriptor() {
-        return (GroovyScriptTriggerDescriptor) Hudson.getInstance().getDescriptorOrDie(getClass());
     }
 
     @Extension
     @SuppressWarnings("unused")
-    public static class GroovyScriptTriggerDescriptor extends AbstractScriptTriggerDescriptor {
+    public static class GroovyScriptTriggerDescriptor extends XTriggerDescriptor {
 
         @Override
         public boolean isApplicable(Item item) {
