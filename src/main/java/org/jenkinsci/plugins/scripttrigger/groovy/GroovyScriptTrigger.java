@@ -6,6 +6,9 @@ import hudson.FilePath;
 import hudson.Util;
 import hudson.model.*;
 import hudson.remoting.VirtualChannel;
+
+import org.jenkinsci.lib.envinject.EnvInjectException;
+import org.jenkinsci.lib.envinject.service.EnvVarsResolver;
 import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
 import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
@@ -113,16 +116,24 @@ public class GroovyScriptTrigger extends AbstractTrigger {
     protected boolean checkIfModified(Node pollingNode, XTriggerLog log) throws ScriptTriggerException {
 
         GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
+        
+        EnvVarsResolver envVarsResolver = new EnvVarsResolver();
+        Map<String, String> envVars;
+        try {
+            envVars = envVarsResolver.getPollingEnvVars((AbstractProject) job, pollingNode);
+        } catch (EnvInjectException e) {
+            throw new ScriptTriggerException(e);
+        }
 
         if (groovyExpression != null) {
-            boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, getGroovyExpression());
+            boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, getGroovyExpression(), envVars);
             if (evaluationSucceed) {
                 return true;
             }
         }
 
         if (groovyFilePath != null) {
-            boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, groovyFilePath);
+            boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, groovyFilePath, envVars);
             if (evaluationSucceed) {
                 return true;
             }
