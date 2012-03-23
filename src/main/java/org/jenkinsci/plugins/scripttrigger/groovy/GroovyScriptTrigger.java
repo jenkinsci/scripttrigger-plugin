@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.scripttrigger.groovy;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
@@ -141,24 +142,25 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         try {
 
             GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
+            final AbstractProject proj = (AbstractProject) job;
             
             EnvVarsResolver envVarsResolver = new EnvVarsResolver();
             Map<String, String> envVars;
             try {
-                envVars = envVarsResolver.getPollingEnvVars((AbstractProject) job, pollingNode);
+                envVars = envVarsResolver.getPollingEnvVars(proj, pollingNode);
             } catch (EnvInjectException e) {
                 throw new ScriptTriggerException(e);
             }
     
             if (groovyExpression != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, job, getGroovyExpression(), envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, proj, getGroovyExpression(), envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
             }
     
             if (groovyFilePath != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, job, groovyFilePath, envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, groovyFilePath, envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
