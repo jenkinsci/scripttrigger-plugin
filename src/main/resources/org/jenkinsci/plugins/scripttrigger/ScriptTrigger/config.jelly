@@ -1,5 +1,4 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
 
     <f:entry field="script" title="${%Script}">
         <f:textarea name="script" value="${instance.script}"/>
@@ -17,6 +16,10 @@
         <f:textarea name="cronTabSpec"
                     checkUrl="'${rootURL}/trigger/TimerTrigger/check?value='+encodeURIComponent(this.value)"
                     value="${instance.spec}"/>
+    </f:entry>
+
+    <f:entry field="enableConcurrentBuild" title="${%Enable Concurrent Build}">
+        <f:checkbox name="enableConcurrentBuild" checked="${instance.enableConcurrentBuild}"/>
     </f:entry>
 
 </j:jelly>

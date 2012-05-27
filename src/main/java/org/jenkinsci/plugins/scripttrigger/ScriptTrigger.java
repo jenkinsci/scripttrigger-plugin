@@ -27,8 +27,8 @@ public class ScriptTrigger extends AbstractTrigger {
     private String exitCode;
 
     @DataBoundConstructor
-    public ScriptTrigger(String cronTabSpec, String script, String scriptFilePath, String exitCode) throws ANTLRException {
-        super(cronTabSpec);
+    public ScriptTrigger(String cronTabSpec, boolean enableConcurrentBuild, String script, String scriptFilePath, String exitCode) throws ANTLRException {
+        super(cronTabSpec, enableConcurrentBuild);
         this.script = Util.fixEmpty(script);
         this.scriptFilePath = Util.fixEmpty(scriptFilePath);
         this.exitCode = Util.fixEmpty(exitCode);

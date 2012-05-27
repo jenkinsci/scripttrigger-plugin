@@ -17,8 +17,15 @@ import java.util.List;
  */
 public abstract class AbstractTrigger extends org.jenkinsci.lib.xtrigger.AbstractTrigger {
 
-    public AbstractTrigger(String cronTabSpec) throws ANTLRException {
-        super(cronTabSpec);
+    protected boolean enableConcurrentBuild;
+
+    public AbstractTrigger(String cronTabSpec, boolean enableConcurrentBuild) throws ANTLRException {
+        super(cronTabSpec, enableConcurrentBuild);
+        this.enableConcurrentBuild = enableConcurrentBuild;
+    }
+
+    public boolean isEnableConcurrentBuild() {
+        return enableConcurrentBuild;
     }
 
     @Override

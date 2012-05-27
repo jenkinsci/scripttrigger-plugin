@@ -1,29 +1,12 @@
 package org.jenkinsci.plugins.scripttrigger.groovy;
 
-import hudson.EnvVars;
+import antlr.ANTLRException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
-import hudson.model.Action;
-import hudson.model.Item;
-import hudson.model.ParameterValue;
-import hudson.model.AbstractProject;
-import hudson.model.Node;
-import hudson.model.ParametersAction;
-import hudson.model.StringParameterValue;
+import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.security.ACL;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.jenkinsci.lib.envinject.EnvInjectException;
@@ -34,7 +17,10 @@ import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import antlr.ANTLRException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.*;
 
 
 /**
@@ -42,18 +28,18 @@ import antlr.ANTLRException;
  */
 public class GroovyScriptTrigger extends AbstractTrigger {
 
-    private String groovyExpression;
+    private final String groovyExpression;
 
-    private String groovyFilePath;
+    private final String groovyFilePath;
 
-    private String propertiesFilePath;
-    
-    private boolean groovySystemScript;
+    private final String propertiesFilePath;
+
+    private final boolean groovySystemScript;
 
     @DataBoundConstructor
     @SuppressWarnings("unused")
-    public GroovyScriptTrigger(String cronTabSpec, String groovyExpression, String groovyFilePath, String propertiesFilePath, boolean groovySystemScript) throws ANTLRException {
-        super(cronTabSpec);
+    public GroovyScriptTrigger(String cronTabSpec, boolean enableConcurrentBuild, String groovyExpression, String groovyFilePath, String propertiesFilePath, boolean groovySystemScript) throws ANTLRException {
+        super(cronTabSpec, enableConcurrentBuild);
         this.groovyExpression = Util.fixEmpty(groovyExpression);
         this.groovyFilePath = Util.fixEmpty(groovyFilePath);
         this.propertiesFilePath = Util.fixEmpty(propertiesFilePath);
@@ -74,7 +60,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
     public String getPropertiesFilePath() {
         return propertiesFilePath;
     }
-    
+
     public boolean isGroovySystemScript() {
         return groovySystemScript;
     }
@@ -143,7 +129,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
             GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
             final AbstractProject proj = (AbstractProject) job;
-            
+
             EnvVarsResolver envVarsResolver = new EnvVarsResolver();
             Map<String, String> envVars;
             try {
@@ -151,24 +137,23 @@ public class GroovyScriptTrigger extends AbstractTrigger {
             } catch (EnvInjectException e) {
                 throw new ScriptTriggerException(e);
             }
-    
+
             if (groovyExpression != null) {
                 boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, proj, getGroovyExpression(), envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
             }
-    
+
             if (groovyFilePath != null) {
                 boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, groovyFilePath, envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
             }
-    
+
             return false;
-        }
-        finally {
+        } finally {
             SecurityContextHolder.getContext().setAuthentication(existingAuth);
         }
     }
