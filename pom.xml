@@ -9,7 +9,7 @@
 
     <artifactId>scripttrigger</artifactId>
     <packaging>hpi</packaging>
-    <version>0.19</version>
+    <version>0.20-SNAPSHOT</version>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/ScriptTrigger+Plugin</url>
 
     <licenses>
