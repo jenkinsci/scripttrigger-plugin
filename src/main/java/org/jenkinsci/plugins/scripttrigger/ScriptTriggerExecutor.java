@@ -80,6 +80,7 @@ public class ScriptTriggerExecutor implements Serializable {
         assert scriptContent != null;
 
         log.info(String.format("Evaluating the script: \n %s", scriptContent));
+        FilePath tmpFile = null;
         try {
 
             boolean isUnix = executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
@@ -94,7 +95,7 @@ public class ScriptTriggerExecutor implements Serializable {
             } else {
                 batchRunner = new BatchFile(scriptContent);
             }
-            FilePath tmpFile = batchRunner.createScriptFile(executingNode.getRootPath());
+            tmpFile = batchRunner.createScriptFile(executingNode.getRootPath());
             final String[] cmd = batchRunner.buildCommandLine(tmpFile);
 
             final FilePath rootPath = executingNode.getRootPath();
@@ -113,6 +114,16 @@ public class ScriptTriggerExecutor implements Serializable {
             throw new ScriptTriggerException(ie);
         } catch (IOException ioe) {
             throw new ScriptTriggerException(ioe);
+        } finally {
+            if (tmpFile != null) {
+                try {
+                    tmpFile.delete();
+                } catch (IOException ioe) {
+                    throw new ScriptTriggerException(ioe);
+                } catch (InterruptedException ie) {
+                    throw new ScriptTriggerException(ie);
+                }
+            }
         }
     }
 
