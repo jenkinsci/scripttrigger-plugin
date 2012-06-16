@@ -26,9 +26,10 @@ public class ScriptTrigger extends AbstractTrigger {
 
     private String exitCode;
 
+
     @DataBoundConstructor
-    public ScriptTrigger(String cronTabSpec, boolean enableConcurrentBuild, String script, String scriptFilePath, String exitCode) throws ANTLRException {
-        super(cronTabSpec, enableConcurrentBuild);
+    public ScriptTrigger(String cronTabSpec, LabelRestrictionClass labelRestriction, boolean enableConcurrentBuild, String script, String scriptFilePath, String exitCode) throws ANTLRException {
+        super(cronTabSpec, (labelRestriction == null) ? false : true, (labelRestriction == null) ? null : labelRestriction.getTriggerLabel(), enableConcurrentBuild);
         this.script = Util.fixEmpty(script);
         this.scriptFilePath = Util.fixEmpty(scriptFilePath);
         this.exitCode = Util.fixEmpty(exitCode);
@@ -42,6 +43,11 @@ public class ScriptTrigger extends AbstractTrigger {
     @SuppressWarnings("unused")
     public String getScriptFilePath() {
         return scriptFilePath;
+    }
+
+    @SuppressWarnings("unused")
+    public String getExitCode() {
+        return exitCode;
     }
 
     @Override

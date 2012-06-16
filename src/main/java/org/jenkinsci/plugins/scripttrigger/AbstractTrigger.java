@@ -17,15 +17,24 @@ import java.util.List;
  */
 public abstract class AbstractTrigger extends org.jenkinsci.lib.xtrigger.AbstractTrigger {
 
+    protected boolean labelRestriction;
+
     protected boolean enableConcurrentBuild;
 
-    public AbstractTrigger(String cronTabSpec, boolean enableConcurrentBuild) throws ANTLRException {
-        super(cronTabSpec, enableConcurrentBuild);
+    public AbstractTrigger(String cronTabSpec, boolean labelRestriction, String triggerLabel, boolean enableConcurrentBuild) throws ANTLRException {
+        super(cronTabSpec, triggerLabel, enableConcurrentBuild);
+        this.labelRestriction = labelRestriction;
         this.enableConcurrentBuild = enableConcurrentBuild;
     }
 
+    @SuppressWarnings("unused")
     public boolean isEnableConcurrentBuild() {
         return enableConcurrentBuild;
+    }
+
+    @SuppressWarnings("unused")
+    public boolean isLabelRestriction() {
+        return labelRestriction;
     }
 
     @Override

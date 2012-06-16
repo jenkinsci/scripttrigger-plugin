@@ -14,6 +14,7 @@ import org.jenkinsci.lib.envinject.service.EnvVarsResolver;
 import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
 import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
+import org.jenkinsci.plugins.scripttrigger.LabelRestrictionClass;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -38,8 +39,8 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
     @DataBoundConstructor
     @SuppressWarnings("unused")
-    public GroovyScriptTrigger(String cronTabSpec, boolean enableConcurrentBuild, String groovyExpression, String groovyFilePath, String propertiesFilePath, boolean groovySystemScript) throws ANTLRException {
-        super(cronTabSpec, enableConcurrentBuild);
+    public GroovyScriptTrigger(String cronTabSpec, LabelRestrictionClass labelRestriction, boolean enableConcurrentBuild, String groovyExpression, String groovyFilePath, String propertiesFilePath, boolean groovySystemScript) throws ANTLRException {
+        super(cronTabSpec, (labelRestriction == null) ? false : true, (labelRestriction == null) ? null : labelRestriction.getTriggerLabel(), enableConcurrentBuild);
         this.groovyExpression = Util.fixEmpty(groovyExpression);
         this.groovyFilePath = Util.fixEmpty(groovyFilePath);
         this.propertiesFilePath = Util.fixEmpty(propertiesFilePath);
