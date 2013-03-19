@@ -63,7 +63,7 @@ public class ScriptTriggerExecutor implements Serializable {
                     BufferedReader bufferedReader = new BufferedReader(fileReader);
                     String line;
                     while ((line = bufferedReader.readLine()) != null) {
-                        content.append(line);
+                        content.append(line + "\n");
                     }
                     return content.toString();
                 }
