@@ -99,6 +99,9 @@ public class ScriptTriggerExecutor implements Serializable {
             final String[] cmd = batchRunner.buildCommandLine(tmpFile);
 
             final FilePath rootPath = executingNode.getRootPath();
+            if (rootPath == null) {
+                throw new ScriptTriggerException("The node is offline.");
+            }
             return rootPath.act(new FilePath.FileCallable<Integer>() {
                 public Integer invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     try {

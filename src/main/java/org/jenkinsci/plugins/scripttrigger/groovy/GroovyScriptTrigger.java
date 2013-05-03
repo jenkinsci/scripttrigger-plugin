@@ -87,31 +87,34 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
         if (propertiesFilePath != null) {
             try {
-                return pollingNode.getRootPath()
-                        .act(new FilePath.FileCallable<Action[]>() {
+                FilePath rootPath = pollingNode.getRootPath();
+                if (rootPath == null) {
+                    throw new ScriptTriggerException("The node is offline.");
+                }
+                return rootPath.act(new FilePath.FileCallable<Action[]>() {
 
-                            public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                                File propFile = new File(propertiesFilePath);
-                                if (!propFile.exists()) {
-                                    log.info(String.format("Can't load the properties file '%s'. It doesn't exist.", f.getPath()));
-                                    return null;
-                                }
+                    public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+                        File propFile = new File(propertiesFilePath);
+                        if (!propFile.exists()) {
+                            log.info(String.format("Can't load the properties file '%s'. It doesn't exist.", f.getPath()));
+                            return null;
+                        }
 
-                                Properties properties = new Properties();
-                                FileInputStream fis = new FileInputStream(propFile);
-                                properties.load(fis);
-                                fis.close();
+                        Properties properties = new Properties();
+                        FileInputStream fis = new FileInputStream(propFile);
+                        properties.load(fis);
+                        fis.close();
 
-                                List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
-                                for (Map.Entry property : properties.entrySet()) {
-                                    ParameterValue parameterValue = new StringParameterValue(
-                                            String.valueOf(property.getKey()),
-                                            String.valueOf(property.getValue()));
-                                    parameterValueList.add(parameterValue);
-                                }
-                                return new Action[]{new ParametersAction(parameterValueList)};
-                            }
-                        });
+                        List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
+                        for (Map.Entry property : properties.entrySet()) {
+                            ParameterValue parameterValue = new StringParameterValue(
+                                    String.valueOf(property.getKey()),
+                                    String.valueOf(property.getValue()));
+                            parameterValueList.add(parameterValue);
+                        }
+                        return new Action[]{new ParametersAction(parameterValueList)};
+                    }
+                });
             } catch (IOException ioe) {
                 throw new ScriptTriggerException(ioe);
             } catch (InterruptedException ie) {
