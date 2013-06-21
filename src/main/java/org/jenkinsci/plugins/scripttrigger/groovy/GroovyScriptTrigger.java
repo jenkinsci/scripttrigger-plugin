@@ -150,7 +150,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
             }
 
             if (groovyFilePath != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, groovyFilePath, envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, Util.replaceMacro(groovyFilePath, envVars), envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
