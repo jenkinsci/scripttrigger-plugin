@@ -138,6 +138,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
             Map<String, String> envVars;
             try {
                 envVars = envVarsResolver.getPollingEnvVars(proj, pollingNode);
+    			groovyFilePath = Util.replaceMacro(groovyFilePath, envVars);
             } catch (EnvInjectException e) {
                 throw new ScriptTriggerException(e);
             }
