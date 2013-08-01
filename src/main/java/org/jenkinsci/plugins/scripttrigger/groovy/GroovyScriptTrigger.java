@@ -4,11 +4,13 @@ import antlr.ANTLRException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
+import hudson.console.AnnotatedLargeText;
 import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.security.ACL;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.lib.envinject.EnvInjectException;
 import org.jenkinsci.lib.envinject.service.EnvVarsResolver;
 import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
@@ -21,6 +23,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 
@@ -68,9 +71,54 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
     @Override
     public Collection<? extends Action> getProjectActions() {
-        GroovyScriptTriggerAction action = new GroovyScriptTriggerAction((AbstractProject) job, getLogFile(), getDescriptor().getDisplayName());
+        GroovyScriptTriggerAction action = new InternalGroovyScriptTriggerAction(getDescriptor().getDisplayName());
         return Collections.singleton(action);
     }
+
+    public final class InternalGroovyScriptTriggerAction extends GroovyScriptTriggerAction {
+
+        private transient String actionTitle;
+
+        public InternalGroovyScriptTriggerAction(String actionTitle) {
+            this.actionTitle = actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public AbstractProject<?, ?> getOwner() {
+            return (AbstractProject) job;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "GroovyScriptTrigger Log";
+        }
+
+        @Override
+        public String getUrlName() {
+            return "groovyScripttriggerPollLog";
+        }
+
+        @Override
+        public String getIconFileName() {
+            return "clipboard.gif";
+        }
+
+        @SuppressWarnings("unused")
+        public String getLabel() {
+            return actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public String getLog() throws IOException {
+            return Util.loadFile(getLogFile());
+        }
+
+        @SuppressWarnings("unused")
+        public void writeLogTo(XMLOutput out) throws IOException {
+            new AnnotatedLargeText<InternalGroovyScriptTriggerAction>(getLogFile(), Charset.defaultCharset(), true, this).writeHtmlTo(0, out.asWriter());
+        }
+    }
+
 
     @Override
     protected File getLogFile() {

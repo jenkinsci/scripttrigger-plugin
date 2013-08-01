@@ -3,7 +3,9 @@ package org.jenkinsci.plugins.scripttrigger;
 import antlr.ANTLRException;
 import hudson.Extension;
 import hudson.Util;
+import hudson.console.AnnotatedLargeText;
 import hudson.model.*;
+import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.lib.envinject.EnvInjectException;
 import org.jenkinsci.lib.envinject.service.EnvVarsResolver;
 import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
@@ -11,6 +13,8 @@ import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -25,7 +29,6 @@ public class ScriptTrigger extends AbstractTrigger {
     private String scriptFilePath;
 
     private String exitCode;
-
 
     @DataBoundConstructor
     public ScriptTrigger(String cronTabSpec, LabelRestrictionClass labelRestriction, boolean enableConcurrentBuild, String script, String scriptFilePath, String exitCode) throws ANTLRException {
@@ -52,8 +55,52 @@ public class ScriptTrigger extends AbstractTrigger {
 
     @Override
     public Collection<? extends Action> getProjectActions() {
-        ScriptTriggerAction action = new ScriptTriggerAction((AbstractProject) job, getLogFile(), getDescriptor().getDisplayName());
+        ScriptTriggerAction action = new InternalScriptTriggerAction(getDescriptor().getDisplayName());
         return Collections.singleton(action);
+    }
+
+    public final class InternalScriptTriggerAction extends ScriptTriggerAction {
+
+        private transient String actionTitle;
+
+        public InternalScriptTriggerAction(String actionTitle) {
+            this.actionTitle = actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public AbstractProject<?, ?> getOwner() {
+            return (AbstractProject) job;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "ScriptTrigger Log";
+        }
+
+        @Override
+        public String getUrlName() {
+            return "scripttriggerPollLog";
+        }
+
+        @Override
+        public String getIconFileName() {
+            return "clipboard.gif";
+        }
+
+        @SuppressWarnings("unused")
+        public String getLabel() {
+            return actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public String getLog() throws IOException {
+            return Util.loadFile(getLogFile());
+        }
+
+        @SuppressWarnings("unused")
+        public void writeLogTo(XMLOutput out) throws IOException {
+            new AnnotatedLargeText<InternalScriptTriggerAction>(getLogFile(), Charset.defaultCharset(), true, this).writeHtmlTo(0, out.asWriter());
+        }
     }
 
     @Override
