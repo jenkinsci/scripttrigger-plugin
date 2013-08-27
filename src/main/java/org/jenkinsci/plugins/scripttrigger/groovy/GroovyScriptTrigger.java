@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import jenkins.model.Jenkins;
+
 
 /**
  * @author Gregory Boissinot
@@ -135,7 +137,15 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
         if (propertiesFilePath != null) {
             try {
-                FilePath rootPath = pollingNode.getRootPath();
+                FilePath rootPath = null;
+                if (this.isGroovySystemScript()) {
+                    log.info("System script.");
+                    // In the case of a system script we run on the master all the time...
+                    rootPath = Jenkins.getInstance().getRootPath();
+                } else {
+                    log.info("Script executed on node.");
+                    rootPath = pollingNode.getRootPath();
+                }
                 if (rootPath == null) {
                     throw new ScriptTriggerException("The node is offline.");
                 }
