@@ -84,7 +84,11 @@ public abstract class AbstractTrigger extends org.jenkinsci.lib.xtrigger.Abstrac
     }
 
     private String extractDescription(String content) {
-        return StringUtils.substringBetween(content, "<description>", "</description>");
+        String [] des =  StringUtils.substringsBetween(content, "<description>", "</description>");
+        if (des != null && des.length >=1 ) {
+            return des[des.length - 1];
+        }
+        return null;
     }
 
     protected boolean requiresWorkspaceForPolling() {
