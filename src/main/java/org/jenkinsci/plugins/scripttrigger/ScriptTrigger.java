@@ -1,3 +1,25 @@
+/**
+ * The MIT License
+ * Copyright (c) 2015 Gregory Boissinot and all contributors
+ * <p/>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p/>
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * <p/>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.plugins.scripttrigger;
 
 import antlr.ANTLRException;
@@ -59,50 +81,6 @@ public class ScriptTrigger extends AbstractTrigger {
         return Collections.singleton(action);
     }
 
-    public final class InternalScriptTriggerAction extends ScriptTriggerAction {
-
-        private transient String actionTitle;
-
-        public InternalScriptTriggerAction(String actionTitle) {
-            this.actionTitle = actionTitle;
-        }
-
-        @SuppressWarnings("unused")
-        public AbstractProject<?, ?> getOwner() {
-            return (AbstractProject) job;
-        }
-
-        @Override
-        public String getDisplayName() {
-            return "ScriptTrigger Log";
-        }
-
-        @Override
-        public String getUrlName() {
-            return "scripttriggerPollLog";
-        }
-
-        @Override
-        public String getIconFileName() {
-            return "clipboard.gif";
-        }
-
-        @SuppressWarnings("unused")
-        public String getLabel() {
-            return actionTitle;
-        }
-
-        @SuppressWarnings("unused")
-        public String getLog() throws IOException {
-            return Util.loadFile(getLogFile());
-        }
-
-        @SuppressWarnings("unused")
-        public void writeLogTo(XMLOutput out) throws IOException {
-            new AnnotatedLargeText<InternalScriptTriggerAction>(getLogFile(), Charset.defaultCharset(), true, this).writeHtmlTo(0, out.asWriter());
-        }
-    }
-
     @Override
     public ScriptTrigger.ScriptTriggerDescriptor getDescriptor() {
         return (ScriptTrigger.ScriptTriggerDescriptor) Hudson.getInstance().getDescriptorOrDie(getClass());
@@ -140,7 +118,6 @@ public class ScriptTrigger extends AbstractTrigger {
             throw new ScriptTriggerException(String.format("The given exit code must be a numeric value. The given value is '%s'.", exitCode));
         }
     }
-
 
     private boolean checkIfModifiedWithScriptsEvaluation(Node executingNode, int expectedExitCode, XTriggerLog log) throws ScriptTriggerException {
 
@@ -183,7 +160,6 @@ public class ScriptTrigger extends AbstractTrigger {
         return expectedExitCode == exitCode;
     }
 
-
     @Extension
     @SuppressWarnings("unused")
     public static class ScriptTriggerDescriptor extends XTriggerDescriptor {
@@ -201,6 +177,50 @@ public class ScriptTrigger extends AbstractTrigger {
         @Override
         public String getHelpFile() {
             return "/plugin/scripttrigger/help-script.html";
+        }
+    }
+
+    public final class InternalScriptTriggerAction extends ScriptTriggerAction {
+
+        private transient String actionTitle;
+
+        public InternalScriptTriggerAction(String actionTitle) {
+            this.actionTitle = actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public AbstractProject<?, ?> getOwner() {
+            return (AbstractProject) job;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "ScriptTrigger Log";
+        }
+
+        @Override
+        public String getUrlName() {
+            return "scripttriggerPollLog";
+        }
+
+        @Override
+        public String getIconFileName() {
+            return "clipboard.gif";
+        }
+
+        @SuppressWarnings("unused")
+        public String getLabel() {
+            return actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public String getLog() throws IOException {
+            return Util.loadFile(getLogFile());
+        }
+
+        @SuppressWarnings("unused")
+        public void writeLogTo(XMLOutput out) throws IOException {
+            new AnnotatedLargeText<InternalScriptTriggerAction>(getLogFile(), Charset.defaultCharset(), true, this).writeHtmlTo(0, out.asWriter());
         }
     }
 

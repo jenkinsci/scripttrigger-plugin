@@ -1,3 +1,25 @@
+/**
+ * The MIT License
+ * Copyright (c) 2015 Gregory Boissinot and all contributors
+ * <p/>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p/>
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * <p/>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.plugins.scripttrigger.groovy;
 
 import antlr.ANTLRException;
@@ -77,51 +99,6 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         return Collections.singleton(action);
     }
 
-    public final class InternalGroovyScriptTriggerAction extends GroovyScriptTriggerAction {
-
-        private transient String actionTitle;
-
-        public InternalGroovyScriptTriggerAction(String actionTitle) {
-            this.actionTitle = actionTitle;
-        }
-
-        @SuppressWarnings("unused")
-        public AbstractProject<?, ?> getOwner() {
-            return (AbstractProject) job;
-        }
-
-        @Override
-        public String getDisplayName() {
-            return "GroovyScriptTrigger Log";
-        }
-
-        @Override
-        public String getUrlName() {
-            return "groovyScripttriggerPollLog";
-        }
-
-        @Override
-        public String getIconFileName() {
-            return "clipboard.gif";
-        }
-
-        @SuppressWarnings("unused")
-        public String getLabel() {
-            return actionTitle;
-        }
-
-        @SuppressWarnings("unused")
-        public String getLog() throws IOException {
-            return Util.loadFile(getLogFile());
-        }
-
-        @SuppressWarnings("unused")
-        public void writeLogTo(XMLOutput out) throws IOException {
-            new AnnotatedLargeText<InternalGroovyScriptTriggerAction>(getLogFile(), Charset.defaultCharset(), true, this).writeHtmlTo(0, out.asWriter());
-        }
-    }
-
-
     @Override
     protected File getLogFile() {
         return new File(job.getRootDir(), "groovyScriptTrigger-polling.log");
@@ -182,7 +159,6 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         return new Action[0];
     }
 
-
     @Override
     protected boolean checkIfModified(Node pollingNode, XTriggerLog log) throws ScriptTriggerException {
         final Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
@@ -241,6 +217,50 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         @Override
         public String getHelpFile() {
             return "/plugin/scripttrigger/help-groovyScript.html";
+        }
+    }
+
+    public final class InternalGroovyScriptTriggerAction extends GroovyScriptTriggerAction {
+
+        private transient String actionTitle;
+
+        public InternalGroovyScriptTriggerAction(String actionTitle) {
+            this.actionTitle = actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public AbstractProject<?, ?> getOwner() {
+            return (AbstractProject) job;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "GroovyScriptTrigger Log";
+        }
+
+        @Override
+        public String getUrlName() {
+            return "groovyScripttriggerPollLog";
+        }
+
+        @Override
+        public String getIconFileName() {
+            return "clipboard.gif";
+        }
+
+        @SuppressWarnings("unused")
+        public String getLabel() {
+            return actionTitle;
+        }
+
+        @SuppressWarnings("unused")
+        public String getLog() throws IOException {
+            return Util.loadFile(getLogFile());
+        }
+
+        @SuppressWarnings("unused")
+        public void writeLogTo(XMLOutput out) throws IOException {
+            new AnnotatedLargeText<InternalGroovyScriptTriggerAction>(getLogFile(), Charset.defaultCharset(), true, this).writeHtmlTo(0, out.asWriter());
         }
     }
 }
