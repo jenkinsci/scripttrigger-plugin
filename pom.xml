@@ -21,8 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -33,7 +32,7 @@ THE SOFTWARE.
 
     <artifactId>scripttrigger</artifactId>
     <packaging>hpi</packaging>
-    <version>0.32-SNAPSHOT</version>
+    <version>0.32</version>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/ScriptTrigger+Plugin</url>
 
     <licenses>
@@ -62,7 +61,8 @@ THE SOFTWARE.
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/scripttrigger-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/scripttrigger-plugin.git</developerConnection>
-    </scm>
+      <tag>scripttrigger-0.32</tag>
+  </scm>
 
     <dependencies>
         <dependency>
