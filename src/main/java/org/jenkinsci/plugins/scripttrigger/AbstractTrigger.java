@@ -105,6 +105,12 @@ public abstract class AbstractTrigger extends org.jenkinsci.lib.xtrigger.Abstrac
         return actionList.toArray(new Action[actionList.size()]);
     }
 
+
+    /**
+     * Extracts the latest description value between the <description></description> section.
+     * @param content the script log trigger plugin current log
+     * @return the latest description found or null if any
+     */
     private String extractDescription(String content) {
         String [] des =  StringUtils.substringsBetween(content, "<description>", "</description>");
         if (des != null && des.length >=1 ) {
