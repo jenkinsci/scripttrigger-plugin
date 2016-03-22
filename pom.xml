@@ -55,7 +55,7 @@ THE SOFTWARE.
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>
-        <xtrigger.lib.version>0.25</xtrigger.lib.version>
+        <xtrigger.lib.version>0.33</xtrigger.lib.version>
     </properties>
 
     <scm>
