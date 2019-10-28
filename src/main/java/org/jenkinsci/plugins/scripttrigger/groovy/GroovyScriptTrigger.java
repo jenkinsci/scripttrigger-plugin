@@ -30,6 +30,7 @@ import hudson.console.AnnotatedLargeText;
 import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.security.ACL;
+import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.jelly.XMLOutput;
@@ -40,6 +41,7 @@ import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
 import org.jenkinsci.plugins.scripttrigger.LabelRestrictionClass;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
+import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -47,8 +49,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
-
-import jenkins.model.Jenkins;
 
 
 /**
@@ -127,6 +127,9 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                     throw new ScriptTriggerException("The node is offline.");
                 }
                 return rootPath.act(new FilePath.FileCallable<Action[]>() {
+                    @Override
+                    public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                    }
 
                     public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                         File propFile = new File(propertiesFilePath);

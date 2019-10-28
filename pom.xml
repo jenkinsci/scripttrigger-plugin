@@ -27,7 +27,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.424</version>
+        <version>3.51</version> <!-- or whatever the newest version available is -->
     </parent>
 
     <artifactId>scripttrigger</artifactId>
@@ -52,6 +52,8 @@ THE SOFTWARE.
     </developers>
 
     <properties>
+        <jenkins.version>2.176.1</jenkins.version>
+        <java.level>8</java.level>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>

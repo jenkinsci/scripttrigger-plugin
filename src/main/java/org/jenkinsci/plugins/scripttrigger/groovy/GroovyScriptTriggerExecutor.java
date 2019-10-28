@@ -33,6 +33,7 @@ import hudson.util.IOUtils;
 import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerExecutor;
+import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -60,6 +61,10 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
             }
 
             return executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                }
+
                 public Boolean call() throws ScriptTriggerException {
                     log.info("Running as node script");
                     return evaluateGroovyScript(null, scriptContent, envVars);

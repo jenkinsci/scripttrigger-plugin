@@ -32,6 +32,7 @@ import hudson.tasks.BatchFile;
 import hudson.tasks.CommandInterpreter;
 import hudson.tasks.Shell;
 import org.jenkinsci.lib.xtrigger.XTriggerLog;
+import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.*;
 import java.util.Map;
@@ -78,6 +79,9 @@ public class ScriptTriggerExecutor implements Serializable {
 
         try {
             return executingNode.getRootPath().act(new FilePath.FileCallable<String>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                }
 
                 public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     StringBuffer content = new StringBuffer();
@@ -106,6 +110,10 @@ public class ScriptTriggerExecutor implements Serializable {
         try {
 
             boolean isUnix = executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                }
+
                 public Boolean call() throws ScriptTriggerException {
                     return File.pathSeparatorChar == ':';
                 }
@@ -125,6 +133,10 @@ public class ScriptTriggerExecutor implements Serializable {
                 throw new ScriptTriggerException("The node is offline.");
             }
             return rootPath.act(new FilePath.FileCallable<Integer>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                }
+
                 public Integer invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
                         return getLocalLauncher(log.getListener()).launch().cmds(cmd).envs(envVars).stdout(log.getListener()).pwd(rootPath).join();
@@ -159,6 +171,10 @@ public class ScriptTriggerExecutor implements Serializable {
     protected boolean existsScript(Node executingNode, final String path) throws ScriptTriggerException {
         try {
             return executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                }
+
                 public Boolean call() throws ScriptTriggerException {
                     File f = new File(path);
                     if (!f.exists()) {
