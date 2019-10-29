@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -123,12 +124,16 @@ public class ScriptTrigger extends AbstractTrigger {
 
         ScriptTriggerExecutor executor = getScriptTriggerExecutor(log);
 
-        EnvVarsResolver envVarsResolver = new EnvVarsResolver();
         Map<String, String> envVars;
-        try {
-            envVars = envVarsResolver.getPollingEnvVars((AbstractProject) job, executingNode);
-        } catch (EnvInjectException e) {
-            throw new ScriptTriggerException(e);
+        if (job instanceof AbstractProject) {
+            EnvVarsResolver envVarsResolver = new EnvVarsResolver();
+            try {
+                envVars = envVarsResolver.getPollingEnvVars((AbstractProject) job, executingNode);
+            } catch (EnvInjectException e) {
+                throw new ScriptTriggerException(e);
+            }
+        } else {
+            envVars = new HashMap<>();
         }
 
         if (script != null) {
@@ -189,8 +194,8 @@ public class ScriptTrigger extends AbstractTrigger {
         }
 
         @SuppressWarnings("unused")
-        public AbstractProject<?, ?> getOwner() {
-            return (AbstractProject) job;
+        public BuildableItem getOwner() {
+            return job;
         }
 
         @Override

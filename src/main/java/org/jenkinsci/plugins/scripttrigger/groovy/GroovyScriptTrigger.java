@@ -169,25 +169,28 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         try {
 
             GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
-            final AbstractProject proj = (AbstractProject) job;
 
-            EnvVarsResolver envVarsResolver = new EnvVarsResolver();
             Map<String, String> envVars;
-            try {
-                envVars = envVarsResolver.getPollingEnvVars(proj, pollingNode);
-            } catch (EnvInjectException e) {
-                throw new ScriptTriggerException(e);
+            if (job instanceof AbstractProject) {
+                EnvVarsResolver envVarsResolver = new EnvVarsResolver();
+                try {
+                    envVars = envVarsResolver.getPollingEnvVars((AbstractProject) job, pollingNode);
+                } catch (EnvInjectException e) {
+                    throw new ScriptTriggerException(e);
+                }
+            } else {
+                envVars = new HashMap<>();
             }
 
             if (groovyExpression != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, proj, getGroovyExpression(), envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, job, getGroovyExpression(), envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
             }
 
             if (groovyFilePath != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, Util.replaceMacro(groovyFilePath, envVars), envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, job, Util.replaceMacro(groovyFilePath, envVars), envVars, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
@@ -232,8 +235,8 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         }
 
         @SuppressWarnings("unused")
-        public AbstractProject<?, ?> getOwner() {
-            return (AbstractProject) job;
+        public BuildableItem getOwner() {
+            return job;
         }
 
         @Override

@@ -23,6 +23,7 @@
 package org.jenkinsci.plugins.scripttrigger;
 
 import antlr.ANTLRException;
+import com.google.common.base.Charsets;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.model.BuildableItem;
@@ -71,7 +72,7 @@ public abstract class AbstractTrigger extends org.jenkinsci.lib.xtrigger.Abstrac
     @Override
     protected String getCause() {
         try {
-            String scriptContent = Util.loadFile(getLogFile());
+            String scriptContent = Util.loadFile(getLogFile(), Charsets.UTF_8);
             String cause = extractRootCause(scriptContent);
             if (cause == null) {
                 return getDefaultMessageCause();
@@ -92,12 +93,12 @@ public abstract class AbstractTrigger extends org.jenkinsci.lib.xtrigger.Abstrac
     protected Action[] getScheduledActions(Node pollingNode, XTriggerLog log) {
         String scriptContent;
         try {
-            scriptContent = Util.loadFile(getLogFile());
+            scriptContent = Util.loadFile(getLogFile(), Charsets.UTF_8);
         } catch (IOException e) {
             return new Action[0];
         }
 
-        List<Action> actionList = new ArrayList<Action>();
+        List<Action> actionList = new ArrayList<>();
         String description = extractDescription(scriptContent);
         if (description != null) {
             actionList.add(new ScriptTriggerRunAction(description));
