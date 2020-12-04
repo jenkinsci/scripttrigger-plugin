@@ -81,11 +81,15 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
     }
 
     private boolean evaluateGroovyScript(final AbstractProject proj, final String scriptContent, final Map<String, String> envVars) {
-        final StringBuilder envDebug = new StringBuilder("Replacing script vars using:");
-        for (final Map.Entry<String, String> envEntry : envVars.entrySet()) {
-            envDebug.append("\n\t").append(envEntry.getKey()).append("=").append(envEntry.getValue());
+        if (envVars != null) {
+            final StringBuilder envDebug = new StringBuilder("Replacing script vars using:");
+            for (final Map.Entry<String, String> envEntry : envVars.entrySet()) {
+                envDebug.append("\n\t").append(envEntry.getKey()).append("=").append(envEntry.getValue());
+            }
+            log.info(envDebug.toString());
+        } else {
+            log.info("No environment variables available.");
         }
-        log.info(envDebug.toString());
 
         log.info("Evaluating the groovy script:");
         log.info("---------- Base Script -----------------");
