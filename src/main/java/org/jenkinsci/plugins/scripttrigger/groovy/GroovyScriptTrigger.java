@@ -37,6 +37,7 @@ import org.jenkinsci.lib.envinject.EnvInjectException;
 import org.jenkinsci.lib.envinject.service.EnvVarsResolver;
 import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
 import org.jenkinsci.lib.xtrigger.XTriggerLog;
+import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedStaplerRequest;
 import org.jenkinsci.plugins.scripttrigger.AbstractTrigger;
 import org.jenkinsci.plugins.scripttrigger.LabelRestrictionClass;
 import org.jenkinsci.plugins.scripttrigger.ScriptTriggerException;
@@ -140,12 +141,21 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                         properties.load(fis);
                         fis.close();
 
+                        assert job != null : "job must not be null if this was 'started'";
+                        ParametersDefinitionProperty paramDefProp = (ParametersDefinitionProperty) ((Job) job)
+                                .getProperty(ParametersDefinitionProperty.class);
                         List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
-                        for (Map.Entry property : properties.entrySet()) {
-                            ParameterValue parameterValue = new StringParameterValue(
-                                    String.valueOf(property.getKey()),
-                                    String.valueOf(property.getValue()));
-                            parameterValueList.add(parameterValue);
+
+                        /* Scan for all parameter with an associated default values */
+                        for (ParameterDefinition paramDefinition : paramDefProp.getParameterDefinitions()) {
+                            ParameterValue defaultValue = paramDefinition.getDefaultParameterValue();
+
+                            if (properties.containsKey(paramDefinition.getName())) {
+                                ParameterizedStaplerRequest request = new ParameterizedStaplerRequest(
+                                        String.valueOf(properties.get(paramDefinition.getName())));
+                                parameterValueList.add(paramDefinition.createValue(request));
+                            } else if (defaultValue != null)
+                                parameterValueList.add(defaultValue);
                         }
                         return new Action[]{new ParametersAction(parameterValueList)};
                     }
