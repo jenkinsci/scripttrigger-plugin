@@ -112,6 +112,8 @@ public class GroovyScriptTrigger extends AbstractTrigger {
 
     @Override
     protected Action[] getScheduledActions(Node pollingNode, final XTriggerLog log) throws ScriptTriggerException {
+        Action[] fileParametersActions = new Action[0];
+        Action[] cronTabParametersActions = new Action[0];
 
         if (propertiesFilePath != null) {
             try {
@@ -127,7 +129,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                 if (rootPath == null) {
                     throw new ScriptTriggerException("The node is offline.");
                 }
-                return rootPath.act(new FilePath.FileCallable<Action[]>() {
+                fileParametersActions = rootPath.act(new FilePath.FileCallable<Action[]>() {
 
                     public Action[] invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                         File propFile = new File(propertiesFilePath);
@@ -141,23 +143,7 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                         properties.load(fis);
                         fis.close();
 
-                        assert job != null : "job must not be null if this was 'started'";
-                        ParametersDefinitionProperty paramDefProp = (ParametersDefinitionProperty) ((Job) job)
-                                .getProperty(ParametersDefinitionProperty.class);
-                        List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
-
-                        /* Scan for all parameter with an associated default values */
-                        for (ParameterDefinition paramDefinition : paramDefProp.getParameterDefinitions()) {
-                            ParameterValue defaultValue = paramDefinition.getDefaultParameterValue();
-
-                            if (properties.containsKey(paramDefinition.getName())) {
-                                ParameterizedStaplerRequest request = new ParameterizedStaplerRequest(
-                                        String.valueOf(properties.get(paramDefinition.getName())));
-                                parameterValueList.add(paramDefinition.createValue(request));
-                            } else if (defaultValue != null)
-                                parameterValueList.add(defaultValue);
-                        }
-                        return new Action[]{new ParametersAction(parameterValueList)};
+                        return getParametersActions(properties);
                     }
                 });
             } catch (IOException ioe) {
@@ -166,6 +152,30 @@ public class GroovyScriptTrigger extends AbstractTrigger {
                 throw new ScriptTriggerException(ie);
             }
         }
+
+        Properties cronTabParameters = new Properties();
+        try {
+            cronTabParameters.putAll(
+                new ParameterParser().findParameters(getSpec(), new GregorianCalendar()));
+        } catch (ANTLRException e) {
+            throw new ScriptTriggerException(e);
+        }
+
+        if (! cronTabParameters.isEmpty()) {
+            cronTabParametersActions = getParametersActions(cronTabParameters);
+        }
+
+        if (fileParametersActions.length > 0 && cronTabParametersActions.length > 0) {
+            ParametersAction fileParametersAction = (ParametersAction) fileParametersActions[0];
+            ParametersAction cronTabParametersAction = (ParametersAction) cronTabParametersActions[0];
+            // Cron Tab parameters overrides File parameters.
+            return new Action[]{fileParametersAction.merge(cronTabParametersAction)};
+        } else if (fileParametersActions.length > 0) {
+            return fileParametersActions;
+        } else if (cronTabParametersActions.length > 0) {
+            return cronTabParametersActions;
+        }
+
         return new Action[0];
     }
 
@@ -174,6 +184,10 @@ public class GroovyScriptTrigger extends AbstractTrigger {
         final Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
         SecurityContextHolder.getContext().setAuthentication(ACL.SYSTEM);
         try {
+
+            Properties parameters =
+                new ParameterParser().findParameters(getSpec(), new GregorianCalendar());
+            log.info("[debug] Parameters: " + parameters);
 
             GroovyScriptTriggerExecutor executor = getGroovyScriptTriggerExecutor(log);
             final AbstractProject proj = (AbstractProject) job;
@@ -187,23 +201,44 @@ public class GroovyScriptTrigger extends AbstractTrigger {
             }
 
             if (groovyExpression != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, proj, getGroovyExpression(), envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScript(pollingNode, proj, getGroovyExpression(), envVars, parameters, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
             }
 
             if (groovyFilePath != null) {
-                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, Util.replaceMacro(groovyFilePath, envVars), envVars, groovySystemScript);
+                boolean evaluationSucceed = executor.evaluateGroovyScriptFilePath(pollingNode, proj, Util.replaceMacro(groovyFilePath, envVars), envVars, parameters, groovySystemScript);
                 if (evaluationSucceed) {
                     return true;
                 }
             }
 
             return false;
+        } catch (ANTLRException e) {
+            throw new ScriptTriggerException(e);
         } finally {
             SecurityContextHolder.getContext().setAuthentication(existingAuth);
         }
+    }
+
+    protected Action[] getParametersActions(Properties properties) {
+        assert job != null : "job must not be null if this was 'started'";
+        ParametersDefinitionProperty paramDefProp = (ParametersDefinitionProperty) ((Job) job)
+            .getProperty(ParametersDefinitionProperty.class);
+        List<ParameterValue> parameterValueList = new ArrayList<ParameterValue>();
+        /* Scan for all parameter with an associated default values */
+        for (ParameterDefinition paramDefinition : paramDefProp.getParameterDefinitions()) {
+            ParameterValue defaultValue = paramDefinition.getDefaultParameterValue();
+
+            if (properties.containsKey(paramDefinition.getName())) {
+                ParameterizedStaplerRequest request = new ParameterizedStaplerRequest(
+                        String.valueOf(properties.get(paramDefinition.getName())));
+                parameterValueList.add(paramDefinition.createValue(request));
+            } else if (defaultValue != null)
+                parameterValueList.add(defaultValue);
+        }
+        return new Action[]{new ParametersAction(parameterValueList)};
     }
 
     private GroovyScriptTriggerExecutor getGroovyScriptTriggerExecutor(XTriggerLog log) throws ScriptTriggerException {

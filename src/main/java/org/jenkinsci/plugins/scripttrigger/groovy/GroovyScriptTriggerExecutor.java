@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * @author Gregory Boissinot
@@ -48,7 +49,7 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
         super(log);
     }
 
-    public boolean evaluateGroovyScript(Node executingNode, final AbstractProject proj, final String scriptContent, final Map<String, String> envVars, boolean groovySystemScript) throws ScriptTriggerException {
+    public boolean evaluateGroovyScript(Node executingNode, final AbstractProject proj, final String scriptContent, final Map<String, String> envVars, final Properties parameters, boolean groovySystemScript) throws ScriptTriggerException {
 
         if (scriptContent == null) {
             throw new NullPointerException("The script content object must be set.");
@@ -56,13 +57,13 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
         try {
             if (groovySystemScript) {
                 log.info("Running as system script");
-                return evaluateGroovyScript(proj, scriptContent, envVars);
+                return evaluateGroovyScript(proj, scriptContent, envVars, parameters);
             }
 
             return executingNode.getRootPath().act(new Callable<Boolean, ScriptTriggerException>() {
                 public Boolean call() throws ScriptTriggerException {
                     log.info("Running as node script");
-                    return evaluateGroovyScript(null, scriptContent, envVars);
+                    return evaluateGroovyScript(null, scriptContent, envVars, parameters);
                 }
             });
         } catch (IOException ioe) {
@@ -80,7 +81,7 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
         }
     }
 
-    private boolean evaluateGroovyScript(final AbstractProject proj, final String scriptContent, final Map<String, String> envVars) {
+    private boolean evaluateGroovyScript(final AbstractProject proj, final String scriptContent, final Map<String, String> envVars, final Properties parameters) {
         if (envVars != null) {
             final StringBuilder envDebug = new StringBuilder("Replacing script vars using:");
             for (final Map.Entry<String, String> envEntry : envVars.entrySet()) {
@@ -108,6 +109,7 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
 
         shell.setVariable("log", log);
         shell.setVariable("out", log.getListener().getLogger());
+        shell.setVariable("parameters", parameters);
         if (proj != null) {
             shell.setVariable("project", proj);
         }
@@ -148,7 +150,7 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
         return cl;
     }
 
-    public boolean evaluateGroovyScriptFilePath(Node executingNode, AbstractProject proj, String scriptFilePath, Map<String, String> envVars, boolean groovySystemScript) throws ScriptTriggerException {
+    public boolean evaluateGroovyScriptFilePath(Node executingNode, AbstractProject proj, String scriptFilePath, Map<String, String> envVars, final Properties parameters, boolean groovySystemScript) throws ScriptTriggerException {
 
         if (scriptFilePath == null) {
             throw new NullPointerException("The scriptFilePath object must be set.");
@@ -189,7 +191,7 @@ public class GroovyScriptTriggerExecutor extends ScriptTriggerExecutor {
             scriptContent = getStringContent(executingNode, scriptFilePath);
         }
 
-        return evaluateGroovyScript(executingNode, proj, scriptContent, envVars, groovySystemScript);
+        return evaluateGroovyScript(executingNode, proj, scriptContent, envVars, parameters, groovySystemScript);
     }
 
 }
