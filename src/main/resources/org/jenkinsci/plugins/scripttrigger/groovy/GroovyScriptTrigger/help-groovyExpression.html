@@ -9,4 +9,19 @@
             f.exists()
         </i>
     </p>
+    <p>
+        Scheduler field supports parameters in format:<br/>
+        <code>#@param &lt;name&gt; [value]</code><br/>
+        <br/>
+        Parameters are applied to a cron item above which they are listed.<br/>
+        These parameters values override ones of default job parameters.<br/>
+        No quotes are needed in case a parameter value contains whitespaces.<br/>
+        A parameter value may be omitted. In this case it will be assumed as an empty one.
+    </p>
+    <p>
+        Predefined variables:
+    </p>
+    <dl>
+        <dt><code>parameters</code></dt><dd>Parameters defined in Scheduler.</dd>
+    </dl>
 </div>
